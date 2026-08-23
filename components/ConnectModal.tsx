@@ -1,9 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Send, ArrowRightLeft, CheckCircle2, Sparkles, GraduationCap, MapPin, MessageCircle, Copy, Check } from "lucide-react";
-import { Profile, SyncRequest } from "@/types";
-import { sendSyncRequest } from "@/lib/supabase";
+import React, { useState, useEffect } from "react";
+import { 
+  X, 
+  Send, 
+  ArrowRightLeft, 
+  Sparkles, 
+  GraduationCap, 
+  MapPin, 
+  MessageCircle, 
+  Copy, 
+  Check, 
+  Mail, 
+  Phone, 
+  ExternalLink,
+  AtSign,
+  User,
+  HeartHandshake
+} from "lucide-react";
+import { Profile } from "@/types";
+import { sendSwapProposal } from "@/lib/supabase";
 
 interface ConnectModalProps {
   profile: Profile | null;
@@ -19,160 +35,261 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
   onSuccess
 }) => {
   const [senderName, setSenderName] = useState("");
-  const [senderEmail, setSenderEmail] = useState("");
+  const [senderContact, setSenderContact] = useState("");
+  const [message, setMessage] = useState("");
   const [offeredSkill, setOfferedSkill] = useState("");
-  const [requestedSkill, setRequestedSkill] = useState(
-    profile?.teach_skills[0]?.name || ""
-  );
-  const [preferredMode, setPreferredMode] = useState<
-    "In-person (Campus)" | "Online (Google Meet / Zoom)" | "Either"
-  >("Either");
-  const [note, setNote] = useState("");
+  const [requestedSkill, setRequestedSkill] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [contactCopied, setContactCopied] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Initialize sender name & contact from localStorage if saved
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("skillsync_chat_name") || localStorage.getItem("skillsync_sender_name");
+      if (savedName) setSenderName(savedName);
+
+      const savedContact = localStorage.getItem("skillsync_sender_contact");
+      if (savedContact) setSenderContact(savedContact);
+    }
+  }, [isOpen]);
 
   // Update requested skill when profile changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile && profile.teach_skills.length > 0) {
       setRequestedSkill(profile.teach_skills[0].name);
     } else {
       setRequestedSkill("");
     }
+    if (profile && profile.learn_skills.length > 0) {
+      setOfferedSkill(profile.learn_skills[0].name);
+    } else {
+      setOfferedSkill("");
+    }
+    if (profile) {
+      setMessage(`Hi ${profile.name}! I'd love to connect for a 1-on-1 skill exchange.`);
+    }
   }, [profile]);
 
   if (!isOpen || !profile) return null;
 
-  const handleCopyContact = () => {
-    if (!profile.contact) return;
-    navigator.clipboard.writeText(profile.contact);
-    setContactCopied(true);
-    setTimeout(() => setContactCopied(false), 2000);
+  // Smart contact parsing
+  const rawContact = profile.contact || profile.contact_email || "";
+  
+  // 1. Email check
+  const isEmail = rawContact.includes("@") && rawContact.includes(".");
+  const emailAddress = isEmail ? rawContact.replace(/^mailto:/i, "").trim() : "";
+  const emailUrl = isEmail ? `mailto:${emailAddress}?subject=${encodeURIComponent(`SkillSync: Skill Swap Proposal from ${senderName || "a peer"}`)}` : undefined;
+
+  // 2. WhatsApp / Phone check
+  const digitsOnly = rawContact.replace(/\D/g, "");
+  const isPhoneOrWhatsApp = digitsOnly.length >= 7 || rawContact.startsWith("+") || rawContact.toLowerCase().includes("wa.me") || rawContact.toLowerCase().includes("whatsapp");
+  const whatsAppNumber = digitsOnly.length >= 7 ? digitsOnly : digitsOnly;
+  const whatsAppUrl = isPhoneOrWhatsApp ? `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(`Hi ${profile.name}! I saw your profile on SkillSync and would love to swap skills.`)}` : undefined;
+
+  // 3. Instagram check
+  const isInstagram = rawContact.startsWith("@") || rawContact.toLowerCase().includes("instagram.com") || (!isEmail && !isPhoneOrWhatsApp && rawContact.length > 0);
+  const cleanInsta = rawContact.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "");
+  const instagramUrl = isInstagram ? `https://instagram.com/${cleanInsta}` : undefined;
+
+  const handleCopyHandle = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!rawContact) return;
+
+    navigator.clipboard.writeText(rawContact);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!senderName.trim() || !senderEmail.trim()) {
-      setError("Please provide your name and campus email to send the swap proposal.");
+    if (!senderName.trim() || !senderContact.trim() || !message.trim()) {
+      setError("Please fill in your name, your contact details, and a brief message / offer.");
       return;
     }
 
     setIsSubmitting(true);
 
-    try {
-      const guestSenderId = typeof crypto !== "undefined" && crypto.randomUUID 
-        ? crypto.randomUUID() 
-        : `sender-${Date.now()}`;
+    // Save identity for next time
+    if (typeof window !== "undefined") {
+      localStorage.setItem("skillsync_sender_name", senderName.trim());
+      localStorage.setItem("skillsync_chat_name", senderName.trim());
+      localStorage.setItem("skillsync_sender_contact", senderContact.trim());
+    }
 
-      const payload: SyncRequest = {
-        sender_id: guestSenderId,
+    try {
+      const result = await sendSwapProposal({
         sender_name: senderName.trim(),
-        sender_email: senderEmail.trim(),
+        sender_contact: senderContact.trim(),
         receiver_id: profile.id,
         receiver_name: profile.name,
+        message: message.trim(),
         offered_skill: offeredSkill.trim(),
-        requested_skill: requestedSkill.trim(),
-        preferred_mode: preferredMode,
-        note: note.trim() || `Hey ${profile.name}! I'd love to swap skills with you.`,
-        status: "pending"
-      };
-
-      const result = await sendSyncRequest(payload);
-      
-      if (!result.success && result.error && !result.error.includes("row-level security")) {
-        setError(result.error);
-        setIsSubmitting(false);
-        return;
-      }
+        requested_skill: requestedSkill.trim()
+      });
 
       setIsSubmitting(false);
       onClose();
-      onSuccess(result.message || `Sync request sent to ${profile.name}!`);
+      onSuccess(result.message || `Swap proposal submitted to ${profile.name}!`);
     } catch (err: any) {
       setIsSubmitting(false);
-      setError(err?.message || "Failed to send request. Please try again.");
+      setError(err?.message || "Failed to submit swap proposal.");
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all"
+        className="relative w-full max-w-xl rounded-3xl bg-white/95 dark:bg-[#0c121e]/95 backdrop-blur-xl border border-slate-200/90 dark:border-indigo-500/20 shadow-2xl overflow-hidden transition-all text-slate-900 dark:text-white"
         role="dialog"
         aria-modal="true"
       >
         {/* Header banner */}
-        <div className="p-6 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white relative">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-white/10">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={profile.avatar_url}
-              alt={profile.name}
-              className="w-12 h-12 rounded-2xl object-cover border-2 border-white/20 shadow-md"
-            />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
-                  Skill Swap Proposal
+          <div className="flex items-center gap-3.5">
+            <div className="relative shrink-0">
+              {profile.avatar_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.name}
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-md"
+                />
+              ) : (
+                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold flex items-center justify-center border-2 border-white/20 shadow-md text-lg">
+                  {profile.name?.charAt(0) || "U"}
+                </div>
+              )}
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-300 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Connect & Swap
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-white leading-tight truncate">
-                Connect with {profile.name}
+              <h2 className="text-lg sm:text-xl font-black text-white leading-tight truncate">
+                {profile.name}
               </h2>
               <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5 truncate">
-                <GraduationCap className="w-3 h-3 shrink-0" />
-                <span className="truncate">{profile.department || "Student"}</span> • <span>{profile.college}</span>
+                <GraduationCap className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                <span className="truncate">{profile.department || "Peer"} • {profile.college}</span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Direct Contact Banner (if student provided contact) */}
-        {profile.contact && (
-          <div className="px-6 py-2.5 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs text-indigo-900 dark:text-indigo-200 truncate">
-              <MessageCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span className="font-semibold">Direct Handle:</span>
-              <span className="font-mono text-slate-700 dark:text-slate-300 truncate">{profile.contact}</span>
+        {/* 1. Direct Contact Action Links Section */}
+        {rawContact ? (
+          <div className="p-4 sm:p-5 bg-indigo-50/60 dark:bg-indigo-950/25 border-b border-indigo-100/80 dark:border-indigo-900/40 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-indigo-200 flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
+                Instant Contact & Social Links:
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[180px]">
+                {rawContact}
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyContact}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 shrink-0 hover:bg-indigo-50"
-            >
-              {contactCopied ? (
-                <>
-                  <Check className="w-3 h-3 text-emerald-500" />
-                  <span className="text-emerald-500">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3 h-3" />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            {/* Action Buttons Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {/* WhatsApp Button */}
+              {isPhoneOrWhatsApp && whatsAppUrl && (
+                <a
+                  href={whatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              )}
+
+              {/* Email Button */}
+              {isEmail && emailUrl && (
+                <a
+                  href={emailUrl}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all active:scale-95"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Send Email</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              )}
+
+              {/* Instagram Button */}
+              {isInstagram && instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white shadow-sm transition-all active:scale-95"
+                >
+                  <AtSign className="w-3.5 h-3.5" />
+                  <span>Instagram</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              )}
+
+              {/* 1-Click Copy Handle Button */}
+              <button
+                type="button"
+                onClick={handleCopyHandle}
+                className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${
+                  copied
+                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-bold"
+                    : "bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm"
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Copy Handle</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* 2. Swap Proposal Form */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[68vh] overflow-y-auto">
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium">
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium">
               {error}
             </div>
           )}
 
-          {/* Student Info inputs */}
+          <div className="flex items-center gap-2 pb-1">
+            <HeartHandshake className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Submit Swap Proposal to Supabase
+            </h3>
+          </div>
+
+          {/* Sender Name & Contact */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -184,41 +301,41 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
                 placeholder="e.g. Jordan Lee"
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 outline-none transition-all"
               />
             </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Your Campus Email *
+                Your Contact (WhatsApp / Email) *
               </label>
               <input
-                type="email"
+                type="text"
                 required
-                value={senderEmail}
-                onChange={(e) => setSenderEmail(e.target.value)}
-                placeholder="jordan@university.edu"
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                value={senderContact}
+                onChange={(e) => setSenderContact(e.target.value)}
+                placeholder="e.g. +1 555-0192 or jordan@uni.edu"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 outline-none transition-all"
               />
             </div>
           </div>
 
           {/* Skill Swap Selection */}
-          <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
             {/* Requested Skill */}
             <div>
-              <label className="block text-xs font-bold text-indigo-950 dark:text-indigo-200 mb-1 flex items-center justify-between">
-                <span>Skill You Want to Learn</span>
-                <span className="text-[10px] text-indigo-500">Selected</span>
+              <label className="block text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                Skill You Want from {profile.name}
               </label>
               {profile.teach_skills.length > 0 ? (
                 <select
                   value={requestedSkill}
                   onChange={(e) => setRequestedSkill(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none"
                 >
-                  {profile.teach_skills.map((skill, idx) => (
-                    <option key={skill.id || idx} value={skill.name}>
-                      {skill.name} ({skill.category})
+                  {profile.teach_skills.map((s, i) => (
+                    <option key={s.id || i} value={s.name}>
+                      {s.name} ({s.category})
                     </option>
                   ))}
                 </select>
@@ -227,99 +344,66 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
                   type="text"
                   value={requestedSkill}
                   onChange={(e) => setRequestedSkill(e.target.value)}
-                  placeholder="What would you like to learn from them?"
-                  className="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-slate-900 dark:text-white outline-none"
+                  placeholder="e.g. React, French..."
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none"
                 />
               )}
             </div>
 
-            <div className="flex justify-center -my-1">
-              <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-              </div>
-            </div>
-
             {/* Offered Skill */}
             <div>
-              <label className="block text-xs font-bold text-emerald-950 dark:text-emerald-200 mb-1 flex items-center justify-between">
-                <span>Skill You Offer in Return (Optional)</span>
-                {profile.learn_skills.length > 0 && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                    They want: {profile.learn_skills.map(s => s.name).join(", ")}
-                  </span>
-                )}
+              <label className="block text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                Skill You Offer in Return
               </label>
               <input
                 type="text"
                 value={offeredSkill}
                 onChange={(e) => setOfferedSkill(e.target.value)}
-                placeholder="e.g. UI/UX Design, Spanish, Python basics..."
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="e.g. Python, UI Design, Math..."
+                className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none"
               />
             </div>
           </div>
 
-          {/* Meeting Mode Preference */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Preferred Format
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["Either", "Online (Google Meet / Zoom)", "In-person (Campus)"] as const).map((mode) => (
-                <button
-                  type="button"
-                  key={mode}
-                  onClick={() => setPreferredMode(mode)}
-                  className={`px-2.5 py-2 rounded-xl text-[11px] font-semibold border transition-all text-center ${
-                    preferredMode === mode
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
-                  }`}
-                >
-                  {mode.split(" ")[0]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Note message */}
+          {/* Message / Offer textarea */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Swap Note / Message (Recorded in Supabase)
+              Your Message / Offer *
             </label>
             <textarea
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={`Introduce yourself, specify your schedule, or mention any project you'd like to collaborate on...`}
-              className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none"
+              rows={3}
+              required
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Introduce yourself, propose times to meet on campus/online, or mention specific project topics..."
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 outline-none resize-none transition-all"
             />
           </div>
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="pt-2 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-500/25 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 shadow-md shadow-indigo-500/25 active:scale-95 transition-all"
             >
               {isSubmitting ? (
                 <>
-                  <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>Sending to Supabase...</span>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Saving to Supabase...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send Swap Request</span>
+                  <span>Send Proposal</span>
                 </>
               )}
             </button>

@@ -64,3 +64,13 @@ export interface FilterState {
   selectedDepartment: string;
   skillTypeFilter: 'all' | 'teach' | 'learn';
 }
+
+export interface ChatMessage {
+  id?: string;
+  sender_id?: string;
+  sender_name: string;
+  receiver_id: string;
+  receiver_name?: string;
+  message: string;
+  created_at?: string;
+}

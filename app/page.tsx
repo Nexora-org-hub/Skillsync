@@ -7,6 +7,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { SkillCard } from "@/components/SkillCard";
 import { ConnectModal } from "@/components/ConnectModal";
 import { AddSkillModal } from "@/components/AddSkillModal";
+import { ChatDrawer } from "@/components/ChatDrawer";
 import { Profile, SkillCategory } from "@/types";
 import { getProfiles } from "@/lib/supabase";
 import { 
@@ -29,9 +30,11 @@ export default function HomePage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
   const [skillTypeFilter, setSkillTypeFilter] = useState<"all" | "teach" | "learn">("all");
   
-  // Modals
+  // Modals & Drawers
   const [selectedProfileForConnect, setSelectedProfileForConnect] = useState<Profile | null>(null);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [selectedProfileForChat, setSelectedProfileForChat] = useState<Profile | null>(null);
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [isAddSkillModalOpen, setIsAddSkillModalOpen] = useState(false);
 
   // Notification Toast
@@ -65,6 +68,11 @@ export default function HomePage() {
   const handleOpenConnect = (profile: Profile) => {
     setSelectedProfileForConnect(profile);
     setIsConnectModalOpen(true);
+  };
+
+  const handleOpenChat = (profile: Profile) => {
+    setSelectedProfileForChat(profile);
+    setIsChatDrawerOpen(true);
   };
 
   const handleProfileAdded = async () => {
@@ -244,6 +252,7 @@ export default function HomePage() {
                 key={profile.id}
                 profile={profile}
                 onConnect={handleOpenConnect}
+                onChat={handleOpenChat}
               />
             ))}
           </div>
@@ -339,6 +348,14 @@ export default function HomePage() {
         isOpen={isConnectModalOpen}
         onClose={() => setIsConnectModalOpen(false)}
         onSuccess={triggerToast}
+      />
+
+      {/* Real-time Direct Chat Drawer */}
+      <ChatDrawer
+        profile={selectedProfileForChat}
+        isOpen={isChatDrawerOpen}
+        onClose={() => setIsChatDrawerOpen(false)}
+        onOpenConnect={handleOpenConnect}
       />
 
       {/* Add / Share My Skill Modal */}
