@@ -2,9 +2,10 @@ export type SkillCategory =
   | 'All'
   | 'Tech' 
   | 'Creative' 
-  | 'Academics' 
+  | 'Business'
+  | 'Language'
   | 'Languages' 
-  | 'Business' 
+  | 'Academics' 
   | 'Music' 
   | 'Other';
 
@@ -60,5 +61,6 @@ export interface SyncRequest {
 export interface FilterState {
   searchQuery: string;
   selectedCategory: SkillCategory;
+  selectedDepartment: string;
   skillTypeFilter: 'all' | 'teach' | 'learn';
 }

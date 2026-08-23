@@ -26,6 +26,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory>("All");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
   const [skillTypeFilter, setSkillTypeFilter] = useState<"all" | "teach" | "learn">("all");
   
   // Modals
@@ -71,31 +72,82 @@ export default function HomePage() {
     triggerToast("Your profile and skills have been published to Supabase!");
   };
 
-  // Filter profiles based on search query, category, and skill type
+  // Distinct departments dynamically collected from profiles + campus majors
+  const departments = useMemo(() => {
+    const fromProfiles = Array.from(
+      new Set(
+        profiles
+          .map((p) => p.department?.trim())
+          .filter((d): d is string => Boolean(d && d.length > 0))
+      )
+    );
+
+    const defaultDepts = [
+      "Computer Science",
+      "Electrical & Computer Engineering",
+      "Business Administration",
+      "Design & Visual Arts",
+      "Data Science & AI",
+      "Economics & Finance",
+      "Mechanical Engineering",
+      "Mathematics & Statistics",
+      "Languages & Linguistics",
+      "Biology & Life Sciences",
+      "Psychology",
+      "Physics"
+    ];
+
+    const combined = Array.from(new Set([...fromProfiles, ...defaultDepts]));
+    return combined.sort((a, b) => a.localeCompare(b));
+  }, [profiles]);
+
+  // Filter profiles based on search query, category, department, and skill type
   const filteredProfiles = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
     return profiles.filter((p) => {
-      // 1. Category check
-      const matchesCategory =
-        selectedCategory === "All" ||
-        p.teach_skills.some((s) => s.category === selectedCategory) ||
-        p.learn_skills.some((s) => s.category === selectedCategory);
-
-      if (!matchesCategory) return false;
-
-      // 2. Search query check
-      if (q) {
-        const matchesName = p.name.toLowerCase().includes(q);
-        const matchesCollege = p.college.toLowerCase().includes(q);
-        const matchesDept = (p.department || "").toLowerCase().includes(q);
-        const matchesContact = (p.contact || "").toLowerCase().includes(q);
-        const matchesTeach = p.teach_skills.some((s) => s.name.toLowerCase().includes(q));
-        const matchesLearn = p.learn_skills.some((s) => s.name.toLowerCase().includes(q));
-
-        if (!matchesName && !matchesCollege && !matchesDept && !matchesContact && !matchesTeach && !matchesLearn) {
+      // 1. Department Filter
+      if (selectedDepartment && selectedDepartment !== "All") {
+        const pDept = (p.department || "").toLowerCase().trim();
+        const targetDept = selectedDepartment.toLowerCase().trim();
+        if (pDept !== targetDept && !pDept.includes(targetDept)) {
           return false;
         }
+      }
+
+      // 2. Category Filter (Matches Teach or Learn skills, supporting Language / Languages)
+      if (selectedCategory && selectedCategory !== "All") {
+        const catTarget = selectedCategory.toLowerCase();
+        const matchesCategory =
+          p.teach_skills.some((s) => {
+            const cat = (s.category || "").toLowerCase();
+            return cat === catTarget || (catTarget === "language" && cat === "languages") || (catTarget === "languages" && cat === "language");
+          }) ||
+          p.learn_skills.some((s) => {
+            const cat = (s.category || "").toLowerCase();
+            return cat === catTarget || (catTarget === "language" && cat === "languages") || (catTarget === "languages" && cat === "language");
+          });
+
+        if (!matchesCategory) return false;
+      }
+
+      // 3. Search Query Check (Instant client-side filter)
+      // Matches: Skill to Teach, Skill to Learn, Full Name, University/College
+      if (q) {
+        const matchesTeach = p.teach_skills.some((s) => 
+          s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q))
+        );
+        const matchesLearn = p.learn_skills.some((s) => 
+          s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q))
+        );
+        const matchesName = 
+          (p.name || "").toLowerCase().includes(q) || 
+          (p.full_name || "").toLowerCase().includes(q);
+        const matchesCollege = (p.college || "").toLowerCase().includes(q);
+        const matchesDept = (p.department || "").toLowerCase().includes(q);
+
+        const hasMatch = matchesTeach || matchesLearn || matchesName || matchesCollege || matchesDept;
+        if (!hasMatch) return false;
 
         // Sub-filter by skill type if query active
         if (skillTypeFilter === "teach" && !matchesTeach && !matchesName) {
@@ -105,18 +157,19 @@ export default function HomePage() {
           return false;
         }
       } else {
-        // When no search query, ensure the profile has skills matching type filter
+        // When no search query, ensure the profile has skills matching type filter if selected
         if (skillTypeFilter === "teach" && p.teach_skills.length === 0) return false;
         if (skillTypeFilter === "learn" && p.learn_skills.length === 0) return false;
       }
 
       return true;
     });
-  }, [profiles, searchQuery, selectedCategory, skillTypeFilter]);
+  }, [profiles, searchQuery, selectedCategory, selectedDepartment, skillTypeFilter]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
+    setSelectedDepartment("All");
     setSkillTypeFilter("all");
   };
 
@@ -141,15 +194,19 @@ export default function HomePage() {
       {/* Hero Banner */}
       <HeroBanner />
 
-      {/* Discovery Feed Filters */}
+      {/* Discovery Feed Real-time Search & Filter Bar */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
+        selectedDepartment={selectedDepartment}
+        onSelectDepartment={setSelectedDepartment}
+        departments={departments}
         skillTypeFilter={skillTypeFilter}
         onSelectSkillType={setSkillTypeFilter}
         resultCount={filteredProfiles.length}
+        onClearFilters={handleResetFilters}
       />
 
       {/* Main Grid Feed */}
@@ -191,23 +248,28 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          /* Search Filter Empty State */
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 my-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-4">
-              <Sparkles className="w-7 h-7" />
+          /* Search / Filter Empty State */
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 my-4 shadow-sm">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-emerald-500/15 text-indigo-500 flex items-center justify-center mb-4 border border-indigo-500/20 shadow-sm">
+              <Sparkles className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-              No matching peers found
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              No matching skill swaps found
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
-              We couldn&apos;t find any students matching &quot;{searchQuery || selectedCategory}&quot;. Try broadening your keywords or reset all filters.
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
+              We couldn&apos;t find any student profiles matching your current filters
+              {searchQuery && <span> for &ldquo;<strong className="text-slate-800 dark:text-slate-200">{searchQuery}</strong>&rdquo;</span>}
+              {selectedCategory !== "All" && <span> in <strong className="text-slate-800 dark:text-slate-200">{selectedCategory}</strong></span>}
+              {selectedDepartment !== "All" && <span> within <strong className="text-slate-800 dark:text-slate-200">{selectedDepartment}</strong></span>}
+              . Try broadening your keywords or clear your filters to see all available peers.
             </p>
             <button
+              id="clear-filters-empty-btn"
               onClick={handleResetFilters}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 active:scale-95 transition-all"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset All Filters</span>
+              <RotateCcw className="w-4 h-4" />
+              <span>Clear Filters</span>
             </button>
           </div>
         )}

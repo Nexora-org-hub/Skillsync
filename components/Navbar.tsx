@@ -17,7 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectCategory,
   totalStudents
 }) => {
-  const quickCategories: SkillCategory[] = ["All", "Tech", "Creative", "Academics", "Languages"];
+  const quickCategories: SkillCategory[] = ["All", "Tech", "Creative", "Business", "Language", "Academics"];
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/85 backdrop-blur-md transition-colors">
@@ -47,7 +47,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Center Category Filter Shortcuts (Desktop) */}
           <nav className="hidden md:flex items-center space-x-1 p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
             {quickCategories.map((cat) => {
-              const isActive = activeCategory === cat;
+              const isActive = 
+                activeCategory === cat || 
+                (cat === "Language" && activeCategory === "Languages") || 
+                (cat === "Languages" && activeCategory === "Language");
               return (
                 <button
                   key={cat}
