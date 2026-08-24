@@ -197,6 +197,9 @@ export default function HomePage() {
       <Navbar
         onOpenAddSkill={() => setIsAddSkillModalOpen(true)}
         onOpenInbox={() => setIsInboxDrawerOpen(true)}
+        onOpenProfileInbox={(profileId) => {
+          setIsInboxDrawerOpen(true);
+        }}
         activeCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         totalStudents={profiles.length}

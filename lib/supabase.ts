@@ -422,6 +422,91 @@ export function subscribeToSwapRequests(
     supabase.removeChannel(channel);
   };
 }
+
+/**
+ * Fetch recent swap requests across all profiles or for notification preview
+ */
+export async function getAllRecentSwapRequests(limit = 15): Promise<SwapRequest[]> {
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from("swap_requests")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn("Supabase getAllRecentSwapRequests note:", error.message);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      to_profile_id: row.to_profile_id,
+      from_name: row.from_user_name || row.from_name || row.sender_name || "Campus Peer",
+      from_contact: row.contact_info || row.from_contact || row.sender_contact || "",
+      message: row.message || "",
+      offered_skill: row.offered_skill || "",
+      requested_skill: row.requested_skill || "",
+      status: row.status || "pending",
+      created_at: row.created_at || new Date().toISOString(),
+      from_user_name: row.from_user_name || row.from_name,
+      contact_info: row.contact_info || row.from_contact,
+      sender_name: row.from_user_name || row.from_name,
+      sender_contact: row.contact_info || row.from_contact,
+      receiver_id: row.to_profile_id
+    }));
+  } catch (err) {
+    console.error("Failed to fetch recent swap requests:", err);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to all real-time swap requests across campus for live notification bell
+ */
+export function subscribeToAllSwapRequests(
+  onNewRequest: (req: SwapRequest) => void
+) {
+  if (!supabase) return () => {};
+
+  const channelId = `all-swap-notifications-${Date.now()}`;
+  const channel = supabase
+    .channel(channelId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "swap_requests"
+      },
+      (payload) => {
+        const newRow: any = payload.new;
+        if (!newRow) return;
+
+        onNewRequest({
+          id: newRow.id,
+          to_profile_id: newRow.to_profile_id,
+          from_name: newRow.from_user_name || newRow.from_name || newRow.sender_name || "Campus Peer",
+          from_contact: newRow.contact_info || newRow.from_contact || newRow.sender_contact || "",
+          message: newRow.message || "",
+          offered_skill: newRow.offered_skill || "",
+          requested_skill: newRow.requested_skill || "",
+          status: newRow.status || "pending",
+          created_at: newRow.created_at || new Date().toISOString(),
+          from_user_name: newRow.from_user_name || newRow.from_name,
+          contact_info: newRow.contact_info || newRow.from_contact
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 /**
  * Fetch messages for a specific profile / conversation from Supabase `messages` table.
  */

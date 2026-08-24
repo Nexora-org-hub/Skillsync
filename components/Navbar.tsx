@@ -3,10 +3,12 @@
 import React from "react";
 import { Sparkles, PlusCircle, Users, GraduationCap, Compass, BookOpen, Inbox } from "lucide-react";
 import { SkillCategory } from "@/types";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface NavbarProps {
   onOpenAddSkill: () => void;
   onOpenInbox: () => void;
+  onOpenProfileInbox?: (profileId: string) => void;
   activeCategory: SkillCategory;
   onSelectCategory: (category: SkillCategory) => void;
   totalStudents: number;
@@ -15,6 +17,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenAddSkill,
   onOpenInbox,
+  onOpenProfileInbox,
   activeCategory,
   onSelectCategory,
   totalStudents
@@ -75,6 +78,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Users className="w-3.5 h-3.5 text-indigo-500" />
               <span>{totalStudents} Peers Online</span>
             </div>
+
+            {/* Notification Bell */}
+            <NotificationBell
+              onOpenInbox={onOpenInbox}
+              onOpenProfileInbox={onOpenProfileInbox}
+            />
 
             <button
               id="inbox-button"
