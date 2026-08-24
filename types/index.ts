@@ -40,6 +40,7 @@ export interface Profile {
   contact_email?: string;
   github_url?: string;
   linkedin_url?: string;
+  video_url?: string;
   created_at?: string;
 }
 

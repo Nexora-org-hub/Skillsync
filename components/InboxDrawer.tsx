@@ -19,7 +19,8 @@ import {
   MessageSquare,
   Search,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Video
 } from "lucide-react";
 import { Profile, SwapRequest } from "@/types";
 import { getSwapRequests, subscribeToSwapRequests } from "@/lib/supabase";
@@ -29,13 +30,15 @@ interface InboxDrawerProps {
   onClose: () => void;
   profiles: Profile[];
   onOpenChatWithProfile?: (profile: Profile) => void;
+  onStartVideoCall?: (roomId: string, peerName: string, peerAvatar?: string) => void;
 }
 
 export const InboxDrawer: React.FC<InboxDrawerProps> = ({
   isOpen,
   onClose,
   profiles,
-  onOpenChatWithProfile
+  onOpenChatWithProfile,
+  onStartVideoCall
 }) => {
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [requests, setRequests] = useState<SwapRequest[]>([]);
@@ -446,6 +449,22 @@ export const InboxDrawer: React.FC<InboxDrawerProps> = ({
 
                     {/* Direct Action Reply Buttons */}
                     <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                      {/* Start Video Call Button */}
+                      {onStartVideoCall && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const roomId = `swap-${(req.to_profile_id || "room").slice(0, 6)}-${(req.id || req.from_name || "peer").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8)}`;
+                            onStartVideoCall(roomId, req.from_name);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xs transition-all active:scale-95"
+                          title={`Start 1-on-1 Video Session with ${req.from_name}`}
+                        >
+                          <Video className="w-3.5 h-3.5 text-indigo-200" />
+                          <span>Start Video Call</span>
+                        </button>
+                      )}
+
                       {/* WhatsApp Button */}
                       {contact.isPhoneOrWhatsApp && contact.whatsAppUrl && (
                         <a

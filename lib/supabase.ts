@@ -94,12 +94,52 @@ export async function getProfiles(): Promise<Profile[]> {
         teach_skills,
         learn_skills,
         availability: p.availability || "",
+        video_url: p.video_url || p.demo_video_url || "",
         created_at: p.created_at
       };
     });
   } catch (err) {
     console.error("Failed to query live Supabase profiles:", err);
     return [];
+  }
+}
+
+/**
+ * Upload a showcase demo video file to Supabase Storage in bucket `skill-videos`
+ */
+export async function uploadSkillVideo(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: "Supabase client is not configured." };
+  }
+
+  try {
+    const fileExt = file.name.split(".").pop() || "mp4";
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const filePath = `demos/${Date.now()}-${cleanFileName}`;
+
+    const { data, error } = await supabase.storage
+      .from("skill-videos")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false
+      });
+
+    if (error) {
+      console.warn("Supabase storage upload notice:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("skill-videos")
+      .getPublicUrl(filePath);
+
+    return {
+      success: true,
+      url: urlData.publicUrl
+    };
+  } catch (err: any) {
+    console.error("Video upload exception:", err);
+    return { success: false, error: err?.message || "Failed to upload video file" };
   }
 }
 
@@ -114,6 +154,7 @@ export async function createProfileAndSkills(params: {
   bio?: string;
   contact?: string;
   avatarUrl?: string;
+  videoUrl?: string;
   teachSkill: { name: string; category: string };
   learnSkill: { name: string; category: string };
 }): Promise<{ success: boolean; error?: string }> {
@@ -136,15 +177,36 @@ export async function createProfileAndSkills(params: {
       profilePayload.contact = params.contact.trim();
     }
 
-    const { data: insertedProfile, error: profileError } = await supabase
+    if (params.videoUrl && params.videoUrl.trim()) {
+      profilePayload.video_url = params.videoUrl.trim();
+    }
+
+    let insertedProfile: any = null;
+    const { data: pData, error: profileError } = await supabase
       .from("profiles")
       .insert([profilePayload])
       .select()
       .single();
 
     if (profileError) {
-      console.error("Supabase profile insert error:", profileError);
-      return { success: false, error: profileError.message };
+      console.warn("Supabase profile insert initial attempt:", profileError.message);
+      // Fallback without video_url in case the column is not yet in profiles schema
+      if (profilePayload.video_url && profileError.message.includes("video_url")) {
+        delete profilePayload.video_url;
+        const { data: retryData, error: retryError } = await supabase
+          .from("profiles")
+          .insert([profilePayload])
+          .select()
+          .single();
+        if (retryError) {
+          return { success: false, error: retryError.message };
+        }
+        insertedProfile = retryData;
+      } else {
+        return { success: false, error: profileError.message };
+      }
+    } else {
+      insertedProfile = pData;
     }
 
     const assignedId = insertedProfile?.id;

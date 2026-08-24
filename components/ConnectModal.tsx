@@ -16,7 +16,8 @@ import {
   ExternalLink,
   AtSign,
   User,
-  HeartHandshake
+  HeartHandshake,
+  Video
 } from "lucide-react";
 import { Profile } from "@/types";
 import { sendSwapProposal } from "@/lib/supabase";
@@ -26,13 +27,15 @@ interface ConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
+  onStartVideoCall?: (roomId: string, peerName: string, peerAvatar?: string) => void;
 }
 
 export const ConnectModal: React.FC<ConnectModalProps> = ({
   profile,
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  onStartVideoCall
 }) => {
   const [senderName, setSenderName] = useState("");
   const [senderContact, setSenderContact] = useState("");
@@ -196,62 +199,80 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
           </div>
         </div>
 
-        {/* 1. Direct Contact Action Links Section */}
-        {rawContact ? (
-          <div className="p-4 sm:p-5 bg-indigo-50/60 dark:bg-indigo-950/25 border-b border-indigo-100/80 dark:border-indigo-900/40 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-700 dark:text-indigo-200 flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
-                Instant Contact & Social Links:
-              </span>
+        {/* 1. Direct Contact & 1-on-1 Call Action Links Section */}
+        <div className="p-4 sm:p-5 bg-indigo-50/60 dark:bg-indigo-950/25 border-b border-indigo-100/80 dark:border-indigo-900/40 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-indigo-200 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              Instant Connect & 1-on-1 Rooms:
+            </span>
+            {rawContact && (
               <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[180px]">
                 {rawContact}
               </span>
-            </div>
+            )}
+          </div>
 
-            {/* Action Buttons Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {/* WhatsApp Button */}
-              {isPhoneOrWhatsApp && whatsAppUrl && (
-                <a
-                  href={whatsAppUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all active:scale-95"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                  <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
-              )}
+          {/* Action Buttons Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* Start Video Call Button */}
+            {onStartVideoCall && (
+              <button
+                type="button"
+                onClick={() => {
+                  const roomId = `swap-${profile.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10)}`;
+                  onStartVideoCall(roomId, profile.name, profile.avatar_url);
+                }}
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-sm transition-all active:scale-95"
+                title={`Start 1-on-1 Video Session with ${profile.name}`}
+              >
+                <Video className="w-3.5 h-3.5 text-indigo-200" />
+                <span>Start Video Call</span>
+              </button>
+            )}
 
-              {/* Email Button */}
-              {isEmail && emailUrl && (
-                <a
-                  href={emailUrl}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all active:scale-95"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Send Email</span>
-                  <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
-              )}
+            {/* WhatsApp Button */}
+            {isPhoneOrWhatsApp && whatsAppUrl && (
+              <a
+                href={whatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all active:scale-95"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
+            )}
 
-              {/* Instagram Button */}
-              {isInstagram && instagramUrl && (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white shadow-sm transition-all active:scale-95"
-                >
-                  <AtSign className="w-3.5 h-3.5" />
-                  <span>Instagram</span>
-                  <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
-              )}
+            {/* Email Button */}
+            {isEmail && emailUrl && (
+              <a
+                href={emailUrl}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all active:scale-95"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Send Email</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
+            )}
 
-              {/* 1-Click Copy Handle Button */}
+            {/* Instagram Button */}
+            {isInstagram && instagramUrl && (
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white shadow-sm transition-all active:scale-95"
+              >
+                <AtSign className="w-3.5 h-3.5" />
+                <span>Instagram</span>
+                <ExternalLink className="w-3 h-3 opacity-70" />
+              </a>
+            )}
+
+            {/* 1-Click Copy Handle Button */}
+            {rawContact && (
               <button
                 type="button"
                 onClick={handleCopyHandle}
@@ -273,9 +294,9 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
                   </>
                 )}
               </button>
-            </div>
+            )}
           </div>
-        ) : null}
+        </div>
 
         {/* 2. Swap Proposal Form */}
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[68vh] overflow-y-auto">

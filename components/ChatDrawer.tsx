@@ -13,7 +13,8 @@ import {
   CheckCheck,
   User,
   ArrowRightLeft,
-  Info
+  Info,
+  Video
 } from "lucide-react";
 import { Profile, ChatMessage } from "@/types";
 import { getMessages, sendChatMessage, subscribeToMessages } from "@/lib/supabase";
@@ -23,13 +24,15 @@ interface ChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenConnect?: (profile: Profile) => void;
+  onStartVideoCall?: (roomId: string, peerName: string, peerAvatar?: string) => void;
 }
 
 export const ChatDrawer: React.FC<ChatDrawerProps> = ({
   profile,
   isOpen,
   onClose,
-  onOpenConnect
+  onOpenConnect,
+  onStartVideoCall
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -228,6 +231,20 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {onStartVideoCall && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const roomId = `call-${profile.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10)}`;
+                    onStartVideoCall(roomId, profile.name, profile.avatar_url);
+                  }}
+                  className="p-2 rounded-xl bg-indigo-600/50 hover:bg-indigo-600 text-white text-xs font-semibold flex items-center gap-1 transition-all active:scale-95 border border-indigo-400/30"
+                  title="Start 1-on-1 Video Session"
+                >
+                  <Video className="w-4 h-4 text-indigo-200" />
+                  <span className="hidden sm:inline">Call</span>
+                </button>
+              )}
               {onOpenConnect && (
                 <button
                   onClick={() => {

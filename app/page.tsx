@@ -9,6 +9,8 @@ import { ConnectModal } from "@/components/ConnectModal";
 import { AddSkillModal } from "@/components/AddSkillModal";
 import { ChatDrawer } from "@/components/ChatDrawer";
 import { InboxDrawer } from "@/components/InboxDrawer";
+import { VideoCallModal } from "@/components/VideoCallModal";
+import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { Profile, SkillCategory } from "@/types";
 import { getProfiles } from "@/lib/supabase";
 import { 
@@ -38,6 +40,30 @@ export default function HomePage() {
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [isInboxDrawerOpen, setIsInboxDrawerOpen] = useState(false);
   const [isAddSkillModalOpen, setIsAddSkillModalOpen] = useState(false);
+
+  // 1-on-1 Video Call State
+  const [videoCallState, setVideoCallState] = useState<{
+    isOpen: boolean;
+    roomId: string;
+    peerName: string;
+    peerAvatar?: string;
+  }>({
+    isOpen: false,
+    roomId: "",
+    peerName: "Campus Peer",
+    peerAvatar: undefined
+  });
+
+  // Demo Video Player State
+  const [activeVideoDemo, setActiveVideoDemo] = useState<{
+    isOpen: boolean;
+    videoUrl: string;
+    profile: Profile | null;
+  }>({
+    isOpen: false,
+    videoUrl: "",
+    profile: null
+  });
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -75,6 +101,31 @@ export default function HomePage() {
   const handleOpenChat = (profile: Profile) => {
     setSelectedProfileForChat(profile);
     setIsChatDrawerOpen(true);
+  };
+
+  const handleStartVideoCall = (roomId: string, peerName: string, peerAvatar?: string) => {
+    setVideoCallState({
+      isOpen: true,
+      roomId,
+      peerName: peerName || "Campus Peer",
+      peerAvatar
+    });
+  };
+
+  const handleCloseVideoCall = () => {
+    setVideoCallState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const handleWatchDemo = (videoUrl: string, profile: Profile) => {
+    setActiveVideoDemo({
+      isOpen: true,
+      videoUrl,
+      profile
+    });
+  };
+
+  const handleCloseDemo = () => {
+    setActiveVideoDemo((prev) => ({ ...prev, isOpen: false }));
   };
 
   const handleProfileAdded = async () => {
@@ -259,6 +310,8 @@ export default function HomePage() {
                 profile={profile}
                 onConnect={handleOpenConnect}
                 onChat={handleOpenChat}
+                onStartVideoCall={handleStartVideoCall}
+                onWatchDemo={handleWatchDemo}
               />
             ))}
           </div>
@@ -354,6 +407,7 @@ export default function HomePage() {
         isOpen={isConnectModalOpen}
         onClose={() => setIsConnectModalOpen(false)}
         onSuccess={triggerToast}
+        onStartVideoCall={handleStartVideoCall}
       />
 
       {/* Real-time Direct Chat Drawer */}
@@ -362,6 +416,7 @@ export default function HomePage() {
         isOpen={isChatDrawerOpen}
         onClose={() => setIsChatDrawerOpen(false)}
         onOpenConnect={handleOpenConnect}
+        onStartVideoCall={handleStartVideoCall}
       />
 
       {/* Incoming Swap Requests Inbox Drawer */}
@@ -373,6 +428,24 @@ export default function HomePage() {
           setIsInboxDrawerOpen(false);
           handleOpenChat(profile);
         }}
+        onStartVideoCall={handleStartVideoCall}
+      />
+
+      {/* 1-on-1 Video & Voice Call Modal (Embedded Jitsi) */}
+      <VideoCallModal
+        isOpen={videoCallState.isOpen}
+        onClose={handleCloseVideoCall}
+        roomId={videoCallState.roomId}
+        peerName={videoCallState.peerName}
+        peerAvatar={videoCallState.peerAvatar}
+      />
+
+      {/* Demo Video Showcase Player Modal */}
+      <VideoPlayerModal
+        isOpen={activeVideoDemo.isOpen}
+        onClose={handleCloseDemo}
+        videoUrl={activeVideoDemo.videoUrl}
+        profile={activeVideoDemo.profile}
       />
 
       {/* Add / Share My Skill Modal */}

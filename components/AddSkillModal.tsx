@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Plus, Sparkles, GraduationCap, CheckCircle2, AlertCircle, MessageCircle, AtSign } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { 
+  X, 
+  Plus, 
+  Sparkles, 
+  GraduationCap, 
+  CheckCircle2, 
+  AlertCircle, 
+  MessageCircle, 
+  AtSign,
+  Video,
+  Upload,
+  Film,
+  FileVideo,
+  Trash2,
+  Play
+} from "lucide-react";
 import { Profile, SkillCategory } from "@/types";
-import { createProfileAndSkills } from "@/lib/supabase";
+import { createProfileAndSkills, uploadSkillVideo } from "@/lib/supabase";
 
 interface AddSkillModalProps {
   isOpen: boolean;
@@ -27,10 +42,59 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   const [learnSkillName, setLearnSkillName] = useState("");
   const [learnCategory, setLearnCategory] = useState<Exclude<SkillCategory, 'All'>>("Creative");
   const [availability, setAvailability] = useState("Weekends & Evenings");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatusText, setSubmitStatusText] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clean up object URL
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) {
+        URL.revokeObjectURL(videoPreviewUrl);
+      }
+    };
+  }, [videoPreviewUrl]);
 
   if (!isOpen) return null;
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate video format
+    const isValidType = file.type === "video/mp4" || file.type === "video/webm" || file.name.endsWith(".mp4") || file.name.endsWith(".webm");
+    if (!isValidType) {
+      setErrorMsg("Please upload an MP4 or WebM video file.");
+      return;
+    }
+
+    // Limit size to ~50MB for smooth uploads
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMsg("Video size should be under 50MB for fastest upload.");
+      return;
+    }
+
+    setErrorMsg(null);
+    setVideoFile(file);
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl);
+    }
+    setVideoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl);
+      setVideoPreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +106,21 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
     }
 
     setIsSubmitting(true);
+    let uploadedVideoUrl = "";
 
     try {
+      // 1. Upload showcase video to Supabase Storage if attached
+      if (videoFile) {
+        setSubmitStatusText("Uploading video showcase to Supabase Storage...");
+        const uploadRes = await uploadSkillVideo(videoFile);
+        if (uploadRes.success && uploadRes.url) {
+          uploadedVideoUrl = uploadRes.url;
+        } else {
+          console.warn("Video upload note:", uploadRes.error);
+        }
+      }
+
+      setSubmitStatusText("Saving profile & skills to Supabase...");
       const result = await createProfileAndSkills({
         name: name.trim(),
         college: college.trim(),
@@ -51,6 +128,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
         yearOfStudy: yearOfStudy,
         contact: contact.trim(),
         bio: bio.trim() || `Student at ${college.trim()} eager to trade skills 1-on-1.`,
+        videoUrl: uploadedVideoUrl || undefined,
         teachSkill: {
           name: teachSkillName.trim(),
           category: teachCategory
@@ -75,6 +153,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
       }
 
       setIsSubmitting(false);
+      handleRemoveVideo();
       onClose();
       onProfileAdded();
     } catch (err: any) {
@@ -261,6 +340,80 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             </div>
           </div>
 
+          {/* Demo Showcase Video (MP4 / WebM) */}
+          <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5 text-purple-500" />
+                Demo Showcase Video (Optional)
+              </label>
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">MP4 or WebM (Max 50MB)</span>
+            </div>
+
+            {!videoFile ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-purple-300/80 dark:border-purple-800/80 hover:border-purple-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-white/50 dark:bg-slate-800/50 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 group"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,.mp4,.webm"
+                  onChange={handleVideoSelect}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center justify-center gap-1.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center transition-colors">
+                    <Upload className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Click to browse or drop your demo video
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Show off your coding, design, language, or music skills in action
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Video Preview Player */}
+                {videoPreviewUrl && (
+                  <div className="relative rounded-xl overflow-hidden bg-black max-h-44 border border-purple-500/30 flex items-center justify-center">
+                    <video
+                      src={videoPreviewUrl}
+                      controls
+                      className="w-full max-h-44 object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* File Details & Remove Button */}
+                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileVideo className="w-4 h-4 text-purple-500 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 truncate text-xs">
+                        {videoFile.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        {(videoFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to upload to Supabase `skill-videos`
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRemoveVideo}
+                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                    title="Remove video"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Short Bio (Optional)
@@ -286,12 +439,12 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-500/25"
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-500/25 active:scale-95 transition-all"
             >
               {isSubmitting ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>Saving to Supabase...</span>
+                  <span>{submitStatusText || "Saving to Supabase..."}</span>
                 </>
               ) : (
                 <>

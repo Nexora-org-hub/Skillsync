@@ -10,7 +10,10 @@ import {
   MessageCircle,
   MessageSquare,
   Copy,
-  Check
+  Check,
+  Video,
+  Play,
+  Film
 } from "lucide-react";
 import { Profile } from "@/types";
 
@@ -18,9 +21,17 @@ interface SkillCardProps {
   profile: Profile;
   onConnect: (profile: Profile) => void;
   onChat: (profile: Profile) => void;
+  onStartVideoCall?: (roomId: string, peerName: string, peerAvatar?: string) => void;
+  onWatchDemo?: (videoUrl: string, profile: Profile) => void;
 }
 
-export const SkillCard: React.FC<SkillCardProps> = ({ profile, onConnect, onChat }) => {
+export const SkillCard: React.FC<SkillCardProps> = ({ 
+  profile, 
+  onConnect, 
+  onChat, 
+  onStartVideoCall,
+  onWatchDemo 
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyContact = (e: React.MouseEvent) => {
@@ -127,16 +138,36 @@ export const SkillCard: React.FC<SkillCardProps> = ({ profile, onConnect, onChat
               <div className="shrink-0 flex items-center gap-1 text-[10px] font-semibold">
                 {copied ? (
                   <>
-                    <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+                    <Copy className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                     <span className="text-slate-400">Copy</span>
                   </>
                 )}
               </div>
+            </button>
+          </div>
+        )}
+
+        {/* Demo Video Showcase Button */}
+        {profile.video_url && (
+          <div className="mb-3.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onWatchDemo && profile.video_url) {
+                  onWatchDemo(profile.video_url, profile);
+                }
+              }}
+              className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-sm shadow-purple-500/25 active:scale-[0.98] transition-all group/btn cursor-pointer"
+              title={`Watch ${profile.name}'s demo video`}
+            >
+              <Play className="w-3.5 h-3.5 fill-white text-white" />
+              <span>▶ Watch Demo</span>
             </button>
           </div>
         )}
@@ -213,6 +244,19 @@ export const SkillCard: React.FC<SkillCardProps> = ({ profile, onConnect, onChat
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {onStartVideoCall && (
+            <button
+              onClick={() => {
+                const roomId = `call-${profile.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10)}`;
+                onStartVideoCall(roomId, profile.name, profile.avatar_url);
+              }}
+              className="inline-flex items-center justify-center p-1.5 sm:px-2 sm:py-1.5 rounded-xl text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200/60 dark:border-purple-800/40 shadow-xs transition-all duration-150 active:scale-95"
+              title={`Start 1-on-1 Video Session with ${profile.name}`}
+            >
+              <Video className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
             onClick={() => onChat(profile)}
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/60 dark:border-indigo-800/40 shadow-xs transition-all duration-150 active:scale-95"
