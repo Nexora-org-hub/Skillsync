@@ -278,24 +278,24 @@ export default function HomePage() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm text-slate-500 mt-4 font-medium">Fetching peer profiles from Supabase...</p>
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-slate-400 mt-4 font-medium">Fetching verified peer profiles from Supabase...</p>
           </div>
         ) : profiles.length === 0 ? (
           /* Empty Database State */
-          <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 my-4 shadow-sm">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500/20 to-emerald-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4">
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 my-4 shadow-xl">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30">
               <GraduationCap className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-black text-white mb-2">
               No campus peer profiles yet
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
-              Be the first to share what you can teach! Connect with classmates and kick off peer skill exchanges.
+            <p className="text-sm text-slate-300 max-w-md mb-6 leading-relaxed">
+              Be the first to share what you can teach! Connect with classmates, share proof of work, and kick off peer skill exchanges.
             </p>
             <button
               onClick={() => setIsAddSkillModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-500/25 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Share My Skill</span>
@@ -317,24 +317,24 @@ export default function HomePage() {
           </div>
         ) : (
           /* Search / Filter Empty State */
-          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 my-4 shadow-sm">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-emerald-500/15 text-indigo-500 flex items-center justify-center mb-4 border border-indigo-500/20 shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 my-4 shadow-xl">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500/20 via-cyan-500/15 to-emerald-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30 shadow-sm">
               <Sparkles className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-black text-white mb-2">
               No matching skill swaps found
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
+            <p className="text-sm text-slate-300 max-w-md mb-6 leading-relaxed">
               We couldn&apos;t find any student profiles matching your current filters
-              {searchQuery && <span> for &ldquo;<strong className="text-slate-800 dark:text-slate-200">{searchQuery}</strong>&rdquo;</span>}
-              {selectedCategory !== "All" && <span> in <strong className="text-slate-800 dark:text-slate-200">{selectedCategory}</strong></span>}
-              {selectedDepartment !== "All" && <span> within <strong className="text-slate-800 dark:text-slate-200">{selectedDepartment}</strong></span>}
+              {searchQuery && <span> for &ldquo;<strong className="text-white font-bold">{searchQuery}</strong>&rdquo;</span>}
+              {selectedCategory !== "All" && <span> in <strong className="text-white font-bold">{selectedCategory}</strong></span>}
+              {selectedDepartment !== "All" && <span> within <strong className="text-white font-bold">{selectedDepartment}</strong></span>}
               . Try broadening your keywords or clear your filters to see all available peers.
             </p>
             <button
               id="clear-filters-empty-btn"
               onClick={handleResetFilters}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Clear Filters</span>
@@ -344,59 +344,59 @@ export default function HomePage() {
       </main>
 
       {/* Campus Trust / How it works Footer Section */}
-      <section className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/50 dark:bg-slate-950/50 py-10 px-4 sm:px-6 lg:px-8 mt-12">
+      <section className="border-t border-white/10 bg-[#090d16]/80 backdrop-blur-xl py-10 px-4 sm:px-6 lg:px-8 mt-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
               <HeartHandshake className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+              <h4 className="font-bold text-sm text-white mb-1">
                 Zero Money Involved
               </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 SkillSync runs on a direct barter economy. One hour of teaching earns you one hour of learning from a peer.
               </p>
             </div>
           </div>
 
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 text-cyan-300 flex items-center justify-center shrink-0 border border-cyan-500/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                Safe Campus Matching
+              <h4 className="font-bold text-sm text-white mb-1">
+                Verified Campus Matching
               </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Students connect with university email verification, transparent ratings, and mutual course project references.
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Students connect with university email verification, transparent ratings, GitHub/LinkedIn portfolios, and proof of work.
               </p>
             </div>
           </div>
 
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/20">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+              <h4 className="font-bold text-sm text-white mb-1">
                 Live Supabase Connected
               </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Integrated real-time database schema for profiles, skills taxonomy, and sync requests with live cloud sync.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-200/50 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <p>© 2026 SkillSync • Campus Peer-to-Peer Learning Platform</p>
           <div className="flex items-center gap-4">
-            <span className="hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">Community Guidelines</span>
+            <span className="hover:text-white cursor-pointer">Community Guidelines</span>
             <span>•</span>
-            <span className="hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">Supabase DB Schema</span>
+            <span className="hover:text-white cursor-pointer">Supabase DB Schema</span>
             <span>•</span>
-            <span className="hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">Support</span>
+            <span className="hover:text-white cursor-pointer">Support</span>
           </div>
         </div>
       </section>

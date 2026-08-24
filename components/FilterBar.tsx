@@ -72,7 +72,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
         {/* 1. Search Box (Matching Teach Skill, Learn Skill, Name, University) */}
         <div className="md:col-span-6 relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-400">
             <Search className="w-4 h-4" />
           </div>
           <input
@@ -80,13 +80,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search by skill to teach, skill to learn, name, or university..."
-            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm"
+            placeholder="Search by skill, discipline, verified achievements, or university..."
+            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition-all shadow-lg shadow-black/20"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange("")}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors"
               title="Clear search"
               aria-label="Clear search"
             >
@@ -97,18 +97,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* 2. Major / Department Dropdown Filter */}
         <div className="md:col-span-3 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-indigo-500">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-cyan-400">
             <GraduationCap className="w-4 h-4" />
           </div>
           <select
             id="department-filter-select"
             value={selectedDepartment}
             onChange={(e) => onSelectDepartment(e.target.value)}
-            className="w-full pl-9 pr-8 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all shadow-sm appearance-none cursor-pointer"
+            className="w-full pl-9 pr-8 py-3 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 text-xs sm:text-sm font-semibold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-400 transition-all shadow-lg shadow-black/20 appearance-none cursor-pointer"
           >
-            <option value="All">All Departments / Majors</option>
+            <option value="All" className="bg-slate-900 text-white">All Departments / Majors</option>
             {departments.map((dept) => (
-              <option key={dept} value={dept}>
+              <option key={dept} value={dept} className="bg-slate-900 text-white">
                 {dept}
               </option>
             ))}
@@ -120,23 +120,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* 3. Skill Type Segmented Control (Teach / Learn / All) */}
         <div className="md:col-span-3 flex justify-start md:justify-end">
-          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="inline-flex p-1 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-white/10 w-full sm:w-auto justify-between sm:justify-start shadow-lg shadow-black/20">
             <button
               onClick={() => onSelectSkillType("all")}
-              className={`flex-1 sm:flex-none px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+              className={`flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 skillTypeFilter === "all"
-                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-slate-800 text-white shadow-sm border border-white/10"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               All
             </button>
             <button
               onClick={() => onSelectSkillType("teach")}
-              className={`flex-1 sm:flex-none px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 skillTypeFilter === "teach"
-                  ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
-                  : "text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400"
+                  ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/25"
+                  : "text-slate-400 hover:text-emerald-400"
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -144,13 +144,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
             <button
               onClick={() => onSelectSkillType("learn")}
-              className={`flex-1 sm:flex-none px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 skillTypeFilter === "learn"
-                  ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-                  : "text-slate-500 hover:text-blue-600 dark:hover:text-blue-400"
+                  ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/25"
+                  : "text-slate-400 hover:text-cyan-400"
               }`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
               Learn
             </button>
           </div>
@@ -170,10 +170,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 key={category.label}
                 id={`category-pill-${category.label.toLowerCase()}`}
                 onClick={() => onSelectCategory(category.label)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 ${
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer ${
                   isSelected
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 font-bold"
-                    : "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 text-slate-600 dark:text-slate-300 hover:border-indigo-300 dark:hover:border-indigo-700/60 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-600/30 font-bold border border-indigo-400/40"
+                    : "bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:border-indigo-400/50 hover:bg-slate-800 hover:text-white"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : "text-slate-400"}`} />
@@ -185,17 +185,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Dynamic Active Count & Clear Button */}
         <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-900/70 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 bg-slate-900/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>
-              Showing <strong className="font-bold text-slate-900 dark:text-white">{resultCount}</strong> {resultCount === 1 ? "skill swap" : "skill swaps"}
+              Showing <strong className="font-bold text-white">{resultCount}</strong> {resultCount === 1 ? "peer swap" : "peer swaps"}
             </span>
           </div>
 
           {isFiltered && (
             <button
               onClick={onClearFilters}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors py-1 px-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors py-1 px-2 hover:bg-cyan-950/40 rounded-lg cursor-pointer"
               title="Reset all active filters"
             >
               <RotateCcw className="w-3 h-3" />
@@ -207,3 +207,4 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     </div>
   );
 };
+

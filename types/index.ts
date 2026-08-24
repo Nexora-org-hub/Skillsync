@@ -41,6 +41,9 @@ export interface Profile {
   github_url?: string;
   linkedin_url?: string;
   video_url?: string;
+  achievements?: string;
+  certificate_url?: string;
+  proof_url?: string;
   created_at?: string;
 }
 

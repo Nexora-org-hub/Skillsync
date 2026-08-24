@@ -9,14 +9,19 @@ import {
   CheckCircle2, 
   AlertCircle, 
   MessageCircle, 
-  AtSign,
+  Award,
+  Link as LinkIcon,
   Video,
   Upload,
   Film,
   FileVideo,
   Trash2,
-  Play
+  Play,
+  Image as ImageIcon,
+  Check,
+  Globe
 } from "lucide-react";
+import { LinkedinIcon, GithubIcon } from "@/components/Icons";
 import { Profile, SkillCategory } from "@/types";
 import { createProfileAndSkills, uploadSkillVideo } from "@/lib/supabase";
 
@@ -25,6 +30,17 @@ interface AddSkillModalProps {
   onClose: () => void;
   onProfileAdded: () => void;
 }
+
+const PRESET_AVATARS = [
+  { id: "cyber", name: "Cyber", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nexus&backgroundColor=6366f1" },
+  { id: "dev", name: "Engineer", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=Aiden&backgroundColor=0ea5e9" },
+  { id: "designer", name: "Designer", url: "https://api.dicebear.com/7.x/lorelei/svg?seed=Zara&backgroundColor=ec4899" },
+  { id: "scholar", name: "Scholar", url: "https://api.dicebear.com/7.x/notionists/svg?seed=Julian&backgroundColor=8b5cf6" },
+  { id: "artist", name: "Creative", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Chloe&backgroundColor=f59e0b" },
+  { id: "polyglot", name: "Polyglot", url: "https://api.dicebear.com/7.x/micah/svg?seed=Maya&backgroundColor=10b981" },
+  { id: "hacker", name: "Hacker", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Matrix&backgroundColor=14b8a6" },
+  { id: "analyst", name: "Analyst", url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Leo&backgroundColor=3b82f6" },
+];
 
 export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   isOpen,
@@ -35,13 +51,25 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   const [college, setCollege] = useState("");
   const [department, setDepartment] = useState("");
   const [yearOfStudy, setYearOfStudy] = useState("Sophomore (2nd Year)");
+  const [selectedAvatar, setSelectedAvatar] = useState(PRESET_AVATARS[0].url);
+  const [isCustomAvatar, setIsCustomAvatar] = useState(false);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState("");
+  
+  // Professional Links (replacing Instagram)
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
   const [contact, setContact] = useState("");
+  
+  // Proof of Work & Verification
+  const [achievements, setAchievements] = useState("");
+  const [certificateUrl, setCertificateUrl] = useState("");
+  
   const [bio, setBio] = useState("");
   const [teachSkillName, setTeachSkillName] = useState("");
   const [teachCategory, setTeachCategory] = useState<Exclude<SkillCategory, 'All'>>("Tech");
   const [learnSkillName, setLearnSkillName] = useState("");
   const [learnCategory, setLearnCategory] = useState<Exclude<SkillCategory, 'All'>>("Creative");
-  const [availability, setAvailability] = useState("Weekends & Evenings");
+  
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +87,10 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   }, [videoPreviewUrl]);
 
   if (!isOpen) return null;
+
+  const activeAvatarUrl = isCustomAvatar && customAvatarUrl.trim() 
+    ? customAvatarUrl.trim() 
+    : selectedAvatar;
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,13 +152,18 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
         }
       }
 
-      setSubmitStatusText("Saving profile & skills to Supabase...");
+      setSubmitStatusText("Saving verified profile & skills to Supabase...");
       const result = await createProfileAndSkills({
         name: name.trim(),
         college: college.trim(),
         department: department.trim(),
         yearOfStudy: yearOfStudy,
+        avatarUrl: activeAvatarUrl,
         contact: contact.trim(),
+        linkedinUrl: linkedinUrl.trim(),
+        githubUrl: githubUrl.trim(),
+        achievements: achievements.trim(),
+        certificateUrl: certificateUrl.trim(),
         bio: bio.trim() || `Student at ${college.trim()} eager to trade skills 1-on-1.`,
         videoUrl: uploadedVideoUrl || undefined,
         teachSkill: {
@@ -140,7 +177,6 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
       });
 
       if (!result.success) {
-        // If RLS blocked insert, provide informative feedback
         if (result.error?.includes("row-level security")) {
           setErrorMsg(
             "Supabase Row-Level Security (RLS) is active on the 'profiles' / 'skills' table. Please add an INSERT policy for the anon role in your Supabase dashboard."
@@ -164,40 +200,106 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl rounded-3xl bg-slate-900/95 border border-white/10 shadow-2xl shadow-indigo-950/50 overflow-hidden flex flex-col max-h-[90vh]"
         role="dialog"
       >
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-indigo-900 via-indigo-800 to-blue-900 text-white relative">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-white/10 shrink-0">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/10"
+            className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
-              Join the Network
+            <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              Verified Campus Network
             </span>
           </div>
-          <h2 className="text-xl font-bold text-white">Share Your Skills</h2>
-          <p className="text-xs text-indigo-200">Post what you can teach and what you want to learn.</p>
+          <h2 className="text-xl sm:text-2xl font-black text-white">Share Your Skill & Profile</h2>
+          <p className="text-xs text-slate-300">Set up your peer profile with verified links, proof of work, and demo video.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-start gap-2">
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Name and College */}
+          {/* 1. Avatar Selector (8 Modern Presets + Custom URL) */}
+          <div className="p-4 rounded-2xl bg-slate-800/60 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                Choose Illustrated Avatar *
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsCustomAvatar(!isCustomAvatar)}
+                className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+              >
+                {isCustomAvatar ? "Pick Illustrated Preset" : "Or use custom image URL"}
+              </button>
+            </div>
+
+            {!isCustomAvatar ? (
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {PRESET_AVATARS.map((avatar) => {
+                  const isSelected = selectedAvatar === avatar.url;
+                  return (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => setSelectedAvatar(avatar.url)}
+                      className={`relative flex flex-col items-center gap-1 p-1.5 rounded-2xl transition-all cursor-pointer ${
+                        isSelected 
+                          ? "bg-indigo-600/30 border-2 border-indigo-400 ring-2 ring-indigo-500/40 scale-105" 
+                          : "bg-slate-900/60 border border-white/5 hover:border-indigo-400/50 hover:bg-slate-800"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={avatar.url}
+                        alt={avatar.name}
+                        className="w-10 h-10 rounded-xl object-cover bg-slate-800"
+                      />
+                      <span className="text-[9px] font-medium text-slate-300 truncate w-full text-center">
+                        {avatar.name}
+                      </span>
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center text-white">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="url"
+                  value={customAvatarUrl}
+                  onChange={(e) => setCustomAvatarUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/... or https://avatars.githubusercontent.com/..."
+                  className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-cyan-400"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Enter any direct public image URL to use as your avatar.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Name and College */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-300 mb-1">
                 Full Name *
               </label>
               <input
@@ -206,11 +308,11 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Sam Taylor"
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-800/80 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-indigo-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-300 mb-1">
                 University / College *
               </label>
               <input
@@ -219,15 +321,15 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                 value={college}
                 onChange={(e) => setCollege(e.target.value)}
                 placeholder="e.g. Stanford University"
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-800/80 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-indigo-400"
               />
             </div>
           </div>
 
-          {/* Department and Year */}
+          {/* 3. Department and Year */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-300 mb-1">
                 Department / Major
               </label>
               <input
@@ -235,17 +337,17 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 placeholder="e.g. Computer Science"
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-800/80 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-indigo-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-300 mb-1">
                 Year of Study
               </label>
               <select
                 value={yearOfStudy}
                 onChange={(e) => setYearOfStudy(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-800/80 border border-white/10 text-white outline-none focus:border-indigo-400"
               >
                 <option value="Freshman (1st Year)">Freshman (1st Year)</option>
                 <option value="Sophomore (2nd Year)">Sophomore (2nd Year)</option>
@@ -256,27 +358,102 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             </div>
           </div>
 
-          {/* Contact / Social Handle (NEW) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
-                Contact / Social Handle (Optional)
-              </span>
-              <span className="text-[10px] text-slate-400 font-normal">WhatsApp, Instagram, Discord, or Email</span>
-            </label>
-            <input
-              type="text"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              placeholder="e.g. @sam_taylor, +1 555-0192, or discord: samt#1234"
-              className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
-            />
+          {/* 4. Professional Links (LinkedIn & GitHub replacing Instagram) */}
+          <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                Professional Links & Contact
+              </label>
+              <span className="text-[10px] text-slate-400 font-medium">Verify your profile & credibility</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                  <LinkedinIcon className="w-3.5 h-3.5 text-sky-400" />
+                  LinkedIn Profile URL
+                </label>
+                <input
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/username"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-sky-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                  <GithubIcon className="w-3.5 h-3.5 text-slate-200" />
+                  GitHub Profile URL
+                </label>
+                <input
+                  type="url"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/username"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                <MessageCircle className="w-3 h-3 text-emerald-400" />
+                Direct Chat / WhatsApp / Email
+              </label>
+              <input
+                type="text"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="e.g. +1 555-0192, sam@stanford.edu, or discord: sam#1234"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-emerald-400"
+              />
+            </div>
           </div>
 
-          {/* Teach Skill */}
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+          {/* 5. Proof of Work & Verification Section */}
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-400" />
+                🏆 Proof of Work & Verification
+              </label>
+              <span className="text-[10px] text-amber-400/80 font-medium">Helps peers verify your skills</span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Key Achievements & Projects
+              </label>
+              <textarea
+                rows={2}
+                value={achievements}
+                onChange={(e) => setAchievements(e.target.value)}
+                placeholder="e.g. 1st Place HackMIT 2025 • Top 1% LeetCode • Built open-source compiler with 500+ GitHub stars • AWS Certified Solutions Architect"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-amber-400 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                <LinkIcon className="w-3 h-3 text-amber-400" />
+                Certificate / Portfolio / Proof Link
+              </label>
+              <input
+                type="url"
+                value={certificateUrl}
+                onChange={(e) => setCertificateUrl(e.target.value)}
+                placeholder="https://coursera.org/verify/... or https://portfolio.dev/project"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-amber-400"
+              />
+            </div>
+          </div>
+
+          {/* 6. Skills to Teach */}
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+            <span className="text-xs font-bold text-emerald-400">
               🎓 Skill You Can Teach *
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -286,15 +463,15 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                   required
                   value={teachSkillName}
                   onChange={(e) => setTeachSkillName(e.target.value)}
-                  placeholder="e.g. Python, Blender 3D, French..."
-                  className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-800 text-slate-900 dark:text-white outline-none"
+                  placeholder="e.g. React & TypeScript, Blender 3D, Organic Chemistry..."
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-emerald-500/30 text-white outline-none focus:border-emerald-400"
                 />
               </div>
               <div>
                 <select
                   value={teachCategory}
                   onChange={(e) => setTeachCategory(e.target.value as any)}
-                  className="w-full px-2 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-800 text-slate-900 dark:text-white outline-none"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-emerald-500/30 text-white outline-none"
                 >
                   <option value="Tech">Tech</option>
                   <option value="Creative">Creative</option>
@@ -307,9 +484,9 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             </div>
           </div>
 
-          {/* Learn Skill */}
-          <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
-            <span className="text-xs font-bold text-blue-800 dark:text-blue-300">
+          {/* 7. Skills to Learn */}
+          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+            <span className="text-xs font-bold text-cyan-400">
               🎯 Skill You Want to Learn *
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -319,15 +496,15 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                   required
                   value={learnSkillName}
                   onChange={(e) => setLearnSkillName(e.target.value)}
-                  placeholder="e.g. Next.js, Figma, Japanese..."
-                  className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-800 text-slate-900 dark:text-white outline-none"
+                  placeholder="e.g. Next.js Turbopack, Figma Prototyping, Spanish..."
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-cyan-500/30 text-white outline-none focus:border-cyan-400"
                 />
               </div>
               <div>
                 <select
                   value={learnCategory}
                   onChange={(e) => setLearnCategory(e.target.value as any)}
-                  className="w-full px-2 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-800 text-slate-900 dark:text-white outline-none"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-slate-900 border border-cyan-500/30 text-white outline-none"
                 >
                   <option value="Tech">Tech</option>
                   <option value="Creative">Creative</option>
@@ -340,20 +517,20 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             </div>
           </div>
 
-          {/* Demo Showcase Video (MP4 / WebM) */}
-          <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2.5">
+          {/* 8. Demo Showcase Video (MP4 / WebM) */}
+          <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                <Film className="w-3.5 h-3.5 text-purple-500" />
+              <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5 text-purple-400" />
                 Demo Showcase Video (Optional)
               </label>
-              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">MP4 or WebM (Max 50MB)</span>
+              <span className="text-[10px] text-purple-400 font-medium">MP4 or WebM (Max 50MB)</span>
             </div>
 
             {!videoFile ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-purple-300/80 dark:border-purple-800/80 hover:border-purple-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-white/50 dark:bg-slate-800/50 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 group"
+                className="border-2 border-dashed border-purple-500/30 hover:border-purple-400 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-900/60 hover:bg-purple-950/30 group"
               >
                 <input
                   ref={fileInputRef}
@@ -363,10 +540,10 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                   className="hidden"
                 />
                 <div className="flex flex-col items-center justify-center gap-1.5">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 group-hover:bg-purple-500/30 text-purple-400 flex items-center justify-center transition-colors">
                     <Upload className="w-4 h-4" />
                   </div>
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <p className="text-xs font-semibold text-slate-200">
                     Click to browse or drop your demo video
                   </p>
                   <p className="text-[10px] text-slate-400">
@@ -376,7 +553,6 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Video Preview Player */}
                 {videoPreviewUrl && (
                   <div className="relative rounded-xl overflow-hidden bg-black max-h-44 border border-purple-500/30 flex items-center justify-center">
                     <video
@@ -387,12 +563,11 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                   </div>
                 )}
 
-                {/* File Details & Remove Button */}
-                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900/50 text-xs">
+                <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900 border border-purple-500/20 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileVideo className="w-4 h-4 text-purple-500 shrink-0" />
+                    <FileVideo className="w-4 h-4 text-purple-400 shrink-0" />
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-800 dark:text-slate-200 truncate text-xs">
+                      <p className="font-semibold text-slate-200 truncate text-xs">
                         {videoFile.name}
                       </p>
                       <p className="text-[10px] text-slate-400">
@@ -404,7 +579,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
                   <button
                     type="button"
                     onClick={handleRemoveVideo}
-                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                    className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-950/40 transition-colors shrink-0"
                     title="Remove video"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -414,32 +589,34 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
             )}
           </div>
 
+          {/* 9. Bio */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-bold text-slate-300 mb-1">
               Short Bio (Optional)
             </label>
             <textarea
               rows={2}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell others a bit about your background, projects, or study interests..."
-              className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none resize-none"
+              placeholder="Tell others a bit about your background, favorite tech stack, or campus interests..."
+              className="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-800/80 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-indigo-400 resize-none"
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2">
+          {/* Actions */}
+          <div className="pt-2 flex items-center justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-500/25 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               {isSubmitting ? (
                 <>

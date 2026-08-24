@@ -95,6 +95,11 @@ export async function getProfiles(): Promise<Profile[]> {
         learn_skills,
         availability: p.availability || "",
         video_url: p.video_url || p.demo_video_url || "",
+        linkedin_url: p.linkedin_url || p.linkedin || "",
+        github_url: p.github_url || p.github || "",
+        achievements: p.achievements || p.proof_of_work || p.key_achievements || "",
+        certificate_url: p.certificate_url || p.proof_url || p.certificate || "",
+        proof_url: p.proof_url || p.certificate_url || "",
         created_at: p.created_at
       };
     });
@@ -155,6 +160,10 @@ export async function createProfileAndSkills(params: {
   contact?: string;
   avatarUrl?: string;
   videoUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  achievements?: string;
+  certificateUrl?: string;
   teachSkill: { name: string; category: string };
   learnSkill: { name: string; category: string };
 }): Promise<{ success: boolean; error?: string }> {
@@ -163,26 +172,39 @@ export async function createProfileAndSkills(params: {
   }
 
   try {
-    const avatarUrl = params.avatarUrl || `https://images.unsplash.com/photo-${1535713875002 + Math.floor(Math.random() * 50)}?w=150&auto=format&fit=crop&q=80`;
+    const avatarUrl = params.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(params.name || "Student")}`;
 
     // 1. Insert into `profiles` (letting Postgres assign id automatically)
     const profilePayload: any = {
       full_name: params.name,
       avatar_url: avatarUrl,
       college: params.college,
+      department: params.department || "",
+      year_of_study: params.yearOfStudy || "",
       bio: params.bio || ""
     };
 
     if (params.contact && params.contact.trim()) {
       profilePayload.contact = params.contact.trim();
     }
-
     if (params.videoUrl && params.videoUrl.trim()) {
       profilePayload.video_url = params.videoUrl.trim();
     }
+    if (params.linkedinUrl && params.linkedinUrl.trim()) {
+      profilePayload.linkedin_url = params.linkedinUrl.trim();
+    }
+    if (params.githubUrl && params.githubUrl.trim()) {
+      profilePayload.github_url = params.githubUrl.trim();
+    }
+    if (params.achievements && params.achievements.trim()) {
+      profilePayload.achievements = params.achievements.trim();
+    }
+    if (params.certificateUrl && params.certificateUrl.trim()) {
+      profilePayload.certificate_url = params.certificateUrl.trim();
+    }
 
     let insertedProfile: any = null;
-    const { data: pData, error: profileError } = await supabase
+    let { data: pData, error: profileError } = await supabase
       .from("profiles")
       .insert([profilePayload])
       .select()
@@ -190,12 +212,23 @@ export async function createProfileAndSkills(params: {
 
     if (profileError) {
       console.warn("Supabase profile insert initial attempt:", profileError.message);
-      // Fallback without video_url in case the column is not yet in profiles schema
-      if (profilePayload.video_url && profileError.message.includes("video_url")) {
-        delete profilePayload.video_url;
+      
+      // Intelligent fallback removing non-existent columns one by one if custom columns aren't in Postgres yet
+      const optionalFields = ["linkedin_url", "github_url", "achievements", "certificate_url", "video_url", "department", "year_of_study"];
+      let retryPayload = { ...profilePayload };
+      let hadRetry = false;
+
+      for (const field of optionalFields) {
+        if (profileError?.message.includes(field) || profileError?.message.includes(`"${field}"`)) {
+          delete retryPayload[field];
+          hadRetry = true;
+        }
+      }
+
+      if (hadRetry) {
         const { data: retryData, error: retryError } = await supabase
           .from("profiles")
-          .insert([profilePayload])
+          .insert([retryPayload])
           .select()
           .single();
         if (retryError) {
