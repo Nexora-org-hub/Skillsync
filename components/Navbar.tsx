@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { Sparkles, PlusCircle, Users, GraduationCap, Compass, BookOpen } from "lucide-react";
+import { Sparkles, PlusCircle, Users, GraduationCap, Compass, BookOpen, Inbox } from "lucide-react";
 import { SkillCategory } from "@/types";
 
 interface NavbarProps {
   onOpenAddSkill: () => void;
+  onOpenInbox: () => void;
   activeCategory: SkillCategory;
   onSelectCategory: (category: SkillCategory) => void;
   totalStudents: number;
@@ -13,6 +14,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenAddSkill,
+  onOpenInbox,
   activeCategory,
   onSelectCategory,
   totalStudents
@@ -73,6 +75,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Users className="w-3.5 h-3.5 text-indigo-500" />
               <span>{totalStudents} Peers Online</span>
             </div>
+
+            <button
+              id="inbox-button"
+              onClick={onOpenInbox}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-slate-800/90 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-indigo-500/40 active:scale-[0.98] transition-all"
+              title="Open Swap Requests Inbox"
+            >
+              <Inbox className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Inbox</span>
+            </button>
 
             <button
               id="add-skill-button"

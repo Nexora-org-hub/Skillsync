@@ -8,6 +8,7 @@ import { SkillCard } from "@/components/SkillCard";
 import { ConnectModal } from "@/components/ConnectModal";
 import { AddSkillModal } from "@/components/AddSkillModal";
 import { ChatDrawer } from "@/components/ChatDrawer";
+import { InboxDrawer } from "@/components/InboxDrawer";
 import { Profile, SkillCategory } from "@/types";
 import { getProfiles } from "@/lib/supabase";
 import { 
@@ -35,6 +36,7 @@ export default function HomePage() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [selectedProfileForChat, setSelectedProfileForChat] = useState<Profile | null>(null);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
+  const [isInboxDrawerOpen, setIsInboxDrawerOpen] = useState(false);
   const [isAddSkillModalOpen, setIsAddSkillModalOpen] = useState(false);
 
   // Notification Toast
@@ -194,6 +196,7 @@ export default function HomePage() {
       {/* Navigation Header */}
       <Navbar
         onOpenAddSkill={() => setIsAddSkillModalOpen(true)}
+        onOpenInbox={() => setIsInboxDrawerOpen(true)}
         activeCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         totalStudents={profiles.length}
@@ -356,6 +359,17 @@ export default function HomePage() {
         isOpen={isChatDrawerOpen}
         onClose={() => setIsChatDrawerOpen(false)}
         onOpenConnect={handleOpenConnect}
+      />
+
+      {/* Incoming Swap Requests Inbox Drawer */}
+      <InboxDrawer
+        isOpen={isInboxDrawerOpen}
+        onClose={() => setIsInboxDrawerOpen(false)}
+        profiles={profiles}
+        onOpenChatWithProfile={(profile) => {
+          setIsInboxDrawerOpen(false);
+          handleOpenChat(profile);
+        }}
       />
 
       {/* Add / Share My Skill Modal */}

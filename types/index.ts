@@ -74,3 +74,38 @@ export interface ChatMessage {
   message: string;
   created_at?: string;
 }
+
+export interface SwapRequest {
+  id?: string;
+  to_profile_id: string;
+  from_name: string;
+  from_contact: string;
+  message: string;
+  offered_skill?: string;
+  requested_skill?: string;
+  status?: 'pending' | 'accepted' | 'declined';
+  created_at?: string;
+  // Aliases for compatibility
+  from_user_name?: string;
+  contact_info?: string;
+  receiver_id?: string;
+  sender_name?: string;
+  sender_contact?: string;
+  receiver_name?: string;
+}
+
+export interface InboxItem {
+  id: string;
+  type: 'swap' | 'chat';
+  sender_name: string;
+  sender_contact?: string;
+  sender_id?: string;
+  receiver_id: string;
+  receiver_name?: string;
+  message: string;
+  offered_skill?: string;
+  requested_skill?: string;
+  status?: 'pending' | 'accepted' | 'declined' | 'delivered';
+  created_at: string;
+}
+

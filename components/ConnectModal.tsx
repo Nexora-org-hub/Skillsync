@@ -123,13 +123,16 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
 
     try {
       const result = await sendSwapProposal({
-        sender_name: senderName.trim(),
-        sender_contact: senderContact.trim(),
-        receiver_id: profile.id,
-        receiver_name: profile.name,
+        to_profile_id: profile.id,
+        from_name: senderName.trim(),
+        from_contact: senderContact.trim(),
         message: message.trim(),
         offered_skill: offeredSkill.trim(),
-        requested_skill: requestedSkill.trim()
+        requested_skill: requestedSkill.trim(),
+        receiver_id: profile.id,
+        receiver_name: profile.name,
+        sender_name: senderName.trim(),
+        sender_contact: senderContact.trim()
       });
 
       setIsSubmitting(false);

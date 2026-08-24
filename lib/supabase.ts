@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { Profile, Skill, SyncRequest, ChatMessage } from "@/types";
+import { Profile, Skill, SyncRequest, ChatMessage, SwapRequest } from "@/types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey =
@@ -251,16 +251,25 @@ export async function sendSyncRequest(req: SyncRequest): Promise<{ success: bool
 
 /**
  * Submit a swap proposal to Supabase `swap_requests` table.
+ * Inserts { to_profile_id, from_user_name, contact_info, message, offered_skill }
  */
 export async function sendSwapProposal(params: {
-  sender_name: string;
-  sender_contact: string;
-  receiver_id: string;
-  receiver_name?: string;
+  to_profile_id?: string;
+  from_name?: string;
+  from_contact?: string;
   message: string;
   offered_skill?: string;
   requested_skill?: string;
+  // Aliases for compatibility
+  sender_name?: string;
+  sender_contact?: string;
+  receiver_id?: string;
+  receiver_name?: string;
 }): Promise<{ success: boolean; message: string; error?: string }> {
+  const toProfileId = params.to_profile_id || params.receiver_id || "";
+  const fromName = params.from_name || params.sender_name || "Student";
+  const fromContact = params.from_contact || params.sender_contact || "";
+
   if (!supabase) {
     return {
       success: true,
@@ -270,27 +279,40 @@ export async function sendSwapProposal(params: {
 
   try {
     const payload: any = {
-      sender_name: params.sender_name,
-      sender_contact: params.sender_contact,
-      receiver_id: params.receiver_id,
-      receiver_name: params.receiver_name,
+      to_profile_id: toProfileId,
+      from_user_name: fromName,
+      contact_info: fromContact,
       message: params.message,
-      offered_skill: params.offered_skill || "",
-      requested_skill: params.requested_skill || "",
-      status: "pending",
+      offered_skill: params.offered_skill || null,
       created_at: new Date().toISOString()
     };
 
-    // 1. Try inserting into `swap_requests` table
+    // 1. Insert into `swap_requests` table
     const { error: swapError } = await supabase.from("swap_requests").insert([payload]);
 
     if (swapError) {
-      console.warn("swap_requests insert notice:", swapError.message);
-      // Fallback: also try inserting composite note into sync_requests if table exists
+      console.warn("swap_requests primary insert notice:", swapError.message);
+      
+      // Secondary fallback in case column names differ in custom schemas
       try {
-        const compositeNote = `From: ${params.sender_name} (${params.sender_contact})\nOffered: ${params.offered_skill || "N/A"}\nRequested: ${params.requested_skill || "N/A"}\n\n${params.message}`;
+        const altPayload: any = {
+          to_profile_id: toProfileId,
+          from_name: fromName,
+          from_contact: fromContact,
+          message: params.message,
+          offered_skill: params.offered_skill || "",
+          created_at: new Date().toISOString()
+        };
+        await supabase.from("swap_requests").insert([altPayload]);
+      } catch (altErr) {
+        console.warn("swap_requests alt insert notice:", altErr);
+      }
+
+      // Fallback to sync_requests table if configured
+      try {
+        const compositeNote = `From: ${fromName} (${fromContact})\nOffered: ${params.offered_skill || "N/A"}\nRequested: ${params.requested_skill || "N/A"}\n\n${params.message}`;
         await supabase.from("sync_requests").insert([{
-          receiver_id: params.receiver_id,
+          receiver_id: toProfileId,
           note: compositeNote,
           status: "pending",
           created_at: new Date().toISOString()
@@ -302,7 +324,7 @@ export async function sendSwapProposal(params: {
 
     return {
       success: true,
-      message: `Swap proposal sent to ${params.receiver_name || "student"}! They will reach out via your contact.`
+      message: `Swap proposal sent to ${params.receiver_name || "peer"}! They can view it in their Inbox.`
     };
   } catch (err: any) {
     console.error("Failed to send swap proposal:", err);
@@ -311,6 +333,94 @@ export async function sendSwapProposal(params: {
       message: `Swap proposal recorded for ${params.receiver_name || "student"}!`
     };
   }
+}
+
+/**
+ * Fetch all swap requests received by a specific profile from `swap_requests`
+ */
+export async function getSwapRequests(toProfileId: string): Promise<SwapRequest[]> {
+  if (!supabase || !toProfileId) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from("swap_requests")
+      .select("*")
+      .eq("to_profile_id", toProfileId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn("Supabase swap_requests query note:", error.message);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      to_profile_id: row.to_profile_id,
+      from_name: row.from_user_name || row.from_name || row.sender_name || "Campus Peer",
+      from_contact: row.contact_info || row.from_contact || row.sender_contact || "",
+      message: row.message || "",
+      offered_skill: row.offered_skill || "",
+      requested_skill: row.requested_skill || "",
+      status: row.status || "pending",
+      created_at: row.created_at || new Date().toISOString(),
+      // Aliases
+      from_user_name: row.from_user_name || row.from_name,
+      contact_info: row.contact_info || row.from_contact,
+      sender_name: row.from_user_name || row.from_name,
+      sender_contact: row.contact_info || row.from_contact,
+      receiver_id: row.to_profile_id
+    }));
+  } catch (err) {
+    console.error("Failed to fetch swap requests:", err);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to real-time swap requests for a specific profile
+ */
+export function subscribeToSwapRequests(
+  toProfileId: string,
+  onNewRequest: (req: SwapRequest) => void
+) {
+  if (!supabase || !toProfileId) return () => {};
+
+  const channelId = `swap-inbox-${toProfileId}-${Date.now()}`;
+  const channel = supabase
+    .channel(channelId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "swap_requests"
+      },
+      (payload) => {
+        const newRow: any = payload.new;
+        if (!newRow) return;
+
+        if (newRow.to_profile_id === toProfileId) {
+          onNewRequest({
+            id: newRow.id,
+            to_profile_id: newRow.to_profile_id,
+            from_name: newRow.from_user_name || newRow.from_name || newRow.sender_name || "Campus Peer",
+            from_contact: newRow.contact_info || newRow.from_contact || newRow.sender_contact || "",
+            message: newRow.message || "",
+            offered_skill: newRow.offered_skill || "",
+            requested_skill: newRow.requested_skill || "",
+            status: newRow.status || "pending",
+            created_at: newRow.created_at || new Date().toISOString(),
+            from_user_name: newRow.from_user_name || newRow.from_name,
+            contact_info: newRow.contact_info || newRow.from_contact
+          });
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 /**
  * Fetch messages for a specific profile / conversation from Supabase `messages` table.
