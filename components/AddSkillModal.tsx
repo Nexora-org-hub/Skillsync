@@ -29,6 +29,7 @@ interface AddSkillModalProps {
   isOpen: boolean;
   onClose: () => void;
   onProfileAdded: () => void;
+  onErrorToast?: (msg: string) => void;
 }
 
 const PRESET_AVATARS = [
@@ -45,7 +46,8 @@ const PRESET_AVATARS = [
 export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   isOpen,
   onClose,
-  onProfileAdded
+  onProfileAdded,
+  onErrorToast
 }) => {
   const [name, setName] = useState("");
   const [college, setCollege] = useState("");
@@ -86,11 +88,34 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
     };
   }, [videoPreviewUrl]);
 
+  const resetForm = () => {
+    setName("");
+    setCollege("");
+    setDepartment("");
+    setYearOfStudy("Sophomore (2nd Year)");
+    setSelectedAvatar(PRESET_AVATARS[0].url);
+    setIsCustomAvatar(false);
+    setCustomAvatarUrl("");
+    setLinkedinUrl("");
+    setGithubUrl("");
+    setContact("");
+    setAchievements("");
+    setCertificateUrl("");
+    setBio("");
+    setTeachSkillName("");
+    setTeachCategory("Tech");
+    setLearnSkillName("");
+    setLearnCategory("Creative");
+    handleRemoveVideo();
+    setErrorMsg(null);
+    setSubmitStatusText("");
+  };
+
   if (!isOpen) return null;
 
   const activeAvatarUrl = isCustomAvatar && customAvatarUrl.trim() 
     ? customAvatarUrl.trim() 
-    : selectedAvatar;
+    : (selectedAvatar || PRESET_AVATARS[0].url);
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,12 +158,14 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
     setErrorMsg(null);
 
     if (!name.trim() || !college.trim() || !teachSkillName.trim() || !learnSkillName.trim()) {
-      setErrorMsg("Please provide your name, university, what you can teach, and what you want to learn.");
+      const missingFieldsMsg = "Please provide your name, university/college, what you can teach, and what you want to learn.";
+      setErrorMsg(missingFieldsMsg);
+      onErrorToast?.(missingFieldsMsg);
       return;
     }
 
     setIsSubmitting(true);
-    let uploadedVideoUrl = "";
+    let uploadedVideoUrl: string | null = null;
 
     try {
       // 1. Upload showcase video to Supabase Storage if attached
@@ -148,24 +175,26 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
         if (uploadRes.success && uploadRes.url) {
           uploadedVideoUrl = uploadRes.url;
         } else {
-          console.warn("Video upload note:", uploadRes.error);
+          console.warn("Video upload note / non-fatal error:", uploadRes.error);
         }
       }
 
       setSubmitStatusText("Saving verified profile & skills to Supabase...");
+      
+      // Sanitized payload mapping: ensure optional fields send null if blank
       const result = await createProfileAndSkills({
         name: name.trim(),
         college: college.trim(),
-        department: department.trim(),
-        yearOfStudy: yearOfStudy,
+        department: department.trim() ? department.trim() : null,
+        yearOfStudy: yearOfStudy ? yearOfStudy : null,
         avatarUrl: activeAvatarUrl,
-        contact: contact.trim(),
-        linkedinUrl: linkedinUrl.trim(),
-        githubUrl: githubUrl.trim(),
-        achievements: achievements.trim(),
-        certificateUrl: certificateUrl.trim(),
-        bio: bio.trim() || `Student at ${college.trim()} eager to trade skills 1-on-1.`,
-        videoUrl: uploadedVideoUrl || undefined,
+        contact: contact.trim() ? contact.trim() : null,
+        linkedinUrl: linkedinUrl.trim() ? linkedinUrl.trim() : null,
+        githubUrl: githubUrl.trim() ? githubUrl.trim() : null,
+        achievements: achievements.trim() ? achievements.trim() : null,
+        certificateUrl: certificateUrl.trim() ? certificateUrl.trim() : null,
+        bio: bio.trim() ? bio.trim() : `Student at ${college.trim()} eager to trade skills 1-on-1.`,
+        videoUrl: uploadedVideoUrl,
         teachSkill: {
           name: teachSkillName.trim(),
           category: teachCategory
@@ -177,25 +206,32 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
       });
 
       if (!result.success) {
-        if (result.error?.includes("row-level security")) {
-          setErrorMsg(
-            "Supabase Row-Level Security (RLS) is active on the 'profiles' / 'skills' table. Please add an INSERT policy for the anon role in your Supabase dashboard."
-          );
-        } else {
-          setErrorMsg(result.error || "Failed to save profile. Please try again.");
+        console.error("Supabase profile publishing failed exact error:", result.error, result.errorDetails);
+        let explicitError = result.error || "Failed to save profile. Please try again.";
+        if (
+          result.error?.includes("row-level security") || 
+          result.error?.includes("RLS") || 
+          result.error?.includes("violates row-level security policy")
+        ) {
+          explicitError = "Supabase Row-Level Security (RLS) is active on 'profiles' or 'skills'. Please add an INSERT policy for the anon/public role in your Supabase SQL Editor.";
         }
+        setErrorMsg(explicitError);
+        onErrorToast?.(explicitError);
         setIsSubmitting(false);
         return;
       }
 
+      // Success flow: Close modal, reset form state, trigger callback to refetch & toast
       setIsSubmitting(false);
-      handleRemoveVideo();
+      resetForm();
       onClose();
       onProfileAdded();
     } catch (err: any) {
-      console.error("Submission exception:", err);
+      console.error("Submission exception caught:", err);
+      const message = err?.message || "An unexpected error occurred while submitting your profile.";
+      setErrorMsg(message);
+      onErrorToast?.(message);
       setIsSubmitting(false);
-      setErrorMsg(err?.message || "An unexpected error occurred.");
     }
   };
 
@@ -614,19 +650,20 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
               Cancel
             </button>
             <button
+              id="publish-my-skill-button"
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-60 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               {isSubmitting ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>{submitStatusText || "Saving to Supabase..."}</span>
+                  <span>{submitStatusText || "Publishing My Skill..."}</span>
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  <span>Publish Profile</span>
+                  <span>Publish My Skill</span>
                 </>
               )}
             </button>

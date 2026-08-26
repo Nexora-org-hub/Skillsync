@@ -17,6 +17,7 @@ import {
   Sparkles, 
   RotateCcw, 
   CheckCircle2, 
+  AlertCircle,
   Zap, 
   ShieldCheck, 
   Users, 
@@ -66,7 +67,7 @@ export default function HomePage() {
   });
 
   // Notification Toast
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastState, setToastState] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -86,11 +87,11 @@ export default function HomePage() {
     loadData();
   }, [loadData]);
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
+  const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToastState({ message: msg, type });
     setTimeout(() => {
-      setToastMessage(null);
-    }, 4500);
+      setToastState(null);
+    }, 5000);
   };
 
   const handleOpenConnect = (profile: Profile) => {
@@ -130,7 +131,7 @@ export default function HomePage() {
 
   const handleProfileAdded = async () => {
     await loadData();
-    triggerToast("Your profile and skills have been published to Supabase!");
+    triggerToast("Profile published successfully!", "success");
   };
 
   // Distinct departments dynamically collected from profiles + campus majors
@@ -237,10 +238,21 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shadow-2xl border border-indigo-500/30 animate-in slide-in-from-bottom-5 duration-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <p className="text-xs sm:text-sm font-medium">{toastMessage}</p>
+      {toastState && (
+        <div
+          role="alert"
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl text-white shadow-2xl border backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300 ${
+            toastState.type === "error"
+              ? "bg-rose-950/95 border-rose-500/50 text-rose-100 shadow-rose-950/50"
+              : "bg-slate-900/95 dark:bg-slate-800/95 border-emerald-500/40 text-emerald-100 shadow-emerald-950/30"
+          }`}
+        >
+          {toastState.type === "error" ? (
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          )}
+          <p className="text-xs sm:text-sm font-medium">{toastState.message}</p>
         </div>
       )}
 
@@ -453,6 +465,7 @@ export default function HomePage() {
         isOpen={isAddSkillModalOpen}
         onClose={() => setIsAddSkillModalOpen(false)}
         onProfileAdded={handleProfileAdded}
+        onErrorToast={(msg) => triggerToast(msg, "error")}
       />
     </div>
   );

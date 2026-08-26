@@ -154,54 +154,54 @@ export async function uploadSkillVideo(file: File): Promise<{ success: boolean; 
 export async function createProfileAndSkills(params: {
   name: string;
   college: string;
-  department?: string;
-  yearOfStudy?: string;
-  bio?: string;
-  contact?: string;
-  avatarUrl?: string;
-  videoUrl?: string;
-  linkedinUrl?: string;
-  githubUrl?: string;
-  achievements?: string;
-  certificateUrl?: string;
+  department?: string | null;
+  yearOfStudy?: string | null;
+  bio?: string | null;
+  contact?: string | null;
+  avatarUrl?: string | null;
+  videoUrl?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  achievements?: string | null;
+  certificateUrl?: string | null;
   teachSkill: { name: string; category: string };
   learnSkill: { name: string; category: string };
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string; errorDetails?: any }> {
   if (!supabase) {
-    return { success: false, error: "Supabase client not initialized." };
+    const errorMsg = "Supabase client is not initialized. Please verify NEXT_PUBLIC_SUPABASE_URL and key in .env.local.";
+    console.error("createProfileAndSkills error:", errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   try {
-    const avatarUrl = params.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(params.name || "Student")}`;
-
-    // 1. Insert into `profiles` (letting Postgres assign id automatically)
-    const profilePayload: any = {
-      full_name: params.name,
-      avatar_url: avatarUrl,
-      college: params.college,
-      department: params.department || "",
-      year_of_study: params.yearOfStudy || "",
-      bio: params.bio || ""
+    // Sanitized string helper: returns trimmed string or null if empty
+    const sanitizeOptional = (val?: string | null): string | null => {
+      if (!val) return null;
+      const trimmed = val.trim();
+      return trimmed.length > 0 ? trimmed : null;
     };
 
-    if (params.contact && params.contact.trim()) {
-      profilePayload.contact = params.contact.trim();
-    }
-    if (params.videoUrl && params.videoUrl.trim()) {
-      profilePayload.video_url = params.videoUrl.trim();
-    }
-    if (params.linkedinUrl && params.linkedinUrl.trim()) {
-      profilePayload.linkedin_url = params.linkedinUrl.trim();
-    }
-    if (params.githubUrl && params.githubUrl.trim()) {
-      profilePayload.github_url = params.githubUrl.trim();
-    }
-    if (params.achievements && params.achievements.trim()) {
-      profilePayload.achievements = params.achievements.trim();
-    }
-    if (params.certificateUrl && params.certificateUrl.trim()) {
-      profilePayload.certificate_url = params.certificateUrl.trim();
-    }
+    // Default fallback avatar if none is selected or provided
+    const fallbackAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(
+      params.name?.trim() || "Student"
+    )}&backgroundColor=6366f1`;
+    const avatarUrl = sanitizeOptional(params.avatarUrl) || fallbackAvatar;
+
+    // 1. Insert into `profiles` (sanitized payload with explicit null for optional fields)
+    const profilePayload: Record<string, any> = {
+      full_name: params.name?.trim() || "Anonymous Student",
+      avatar_url: avatarUrl,
+      college: params.college?.trim() || "",
+      department: sanitizeOptional(params.department),
+      year_of_study: sanitizeOptional(params.yearOfStudy),
+      bio: sanitizeOptional(params.bio) || `Student at ${params.college?.trim() || "Campus"} eager to trade skills 1-on-1.`,
+      contact: sanitizeOptional(params.contact),
+      linkedin_url: sanitizeOptional(params.linkedinUrl),
+      github_url: sanitizeOptional(params.githubUrl),
+      achievements: sanitizeOptional(params.achievements),
+      certificate_url: sanitizeOptional(params.certificateUrl),
+      video_url: sanitizeOptional(params.videoUrl)
+    };
 
     let insertedProfile: any = null;
     let { data: pData, error: profileError } = await supabase
@@ -211,32 +211,50 @@ export async function createProfileAndSkills(params: {
       .single();
 
     if (profileError) {
-      console.warn("Supabase profile insert initial attempt:", profileError.message);
+      console.error("Supabase profile insert exact error object:", profileError);
+      console.warn("Supabase profile insert attempt failed with payload:", profilePayload);
       
       // Intelligent fallback removing non-existent columns one by one if custom columns aren't in Postgres yet
-      const optionalFields = ["linkedin_url", "github_url", "achievements", "certificate_url", "video_url", "department", "year_of_study"];
+      const optionalFields = ["linkedin_url", "github_url", "achievements", "certificate_url", "video_url", "department", "year_of_study", "contact"];
       let retryPayload = { ...profilePayload };
       let hadRetry = false;
 
       for (const field of optionalFields) {
-        if (profileError?.message.includes(field) || profileError?.message.includes(`"${field}"`)) {
+        if (profileError?.message?.includes(field) || profileError?.message?.includes(`"${field}"`)) {
           delete retryPayload[field];
           hadRetry = true;
         }
       }
 
+      // Check if schema uses `name` instead of `full_name`
+      if (profileError?.message?.includes("full_name") || profileError?.message?.includes(`"full_name"`)) {
+        retryPayload.name = retryPayload.full_name;
+        delete retryPayload.full_name;
+        hadRetry = true;
+      }
+
       if (hadRetry) {
+        console.warn("Retrying profile insert with sanitized schema fallback payload:", retryPayload);
         const { data: retryData, error: retryError } = await supabase
           .from("profiles")
           .insert([retryPayload])
           .select()
           .single();
         if (retryError) {
-          return { success: false, error: retryError.message };
+          console.error("Supabase profile insert retry exact error object:", retryError);
+          return { 
+            success: false, 
+            error: retryError.message || "Failed to insert profile record into Supabase.",
+            errorDetails: retryError
+          };
         }
         insertedProfile = retryData;
       } else {
-        return { success: false, error: profileError.message };
+        return { 
+          success: false, 
+          error: profileError.message || "Failed to insert profile record into Supabase.",
+          errorDetails: profileError
+        };
       }
     } else {
       insertedProfile = pData;
@@ -244,21 +262,23 @@ export async function createProfileAndSkills(params: {
 
     const assignedId = insertedProfile?.id;
     if (!assignedId) {
-      return { success: false, error: "Failed to retrieve new profile ID." };
+      const err = "Failed to retrieve new profile ID from Supabase insert response.";
+      console.error(err, insertedProfile);
+      return { success: false, error: err };
     }
 
     // 2. Insert into `skills` (letting Postgres assign id automatically)
     const skillsToInsert = [
       {
         profile_id: assignedId,
-        name: params.teachSkill.name,
-        category: params.teachSkill.category,
+        name: params.teachSkill.name?.trim(),
+        category: params.teachSkill.category || "Tech",
         skill_type: "teach"
       },
       {
         profile_id: assignedId,
-        name: params.learnSkill.name,
-        category: params.learnSkill.category,
+        name: params.learnSkill.name?.trim(),
+        category: params.learnSkill.category || "Creative",
         skill_type: "learn"
       }
     ];
@@ -268,14 +288,22 @@ export async function createProfileAndSkills(params: {
       .insert(skillsToInsert);
 
     if (skillsError) {
-      console.error("Supabase skills insert error:", skillsError);
-      return { success: false, error: skillsError.message };
+      console.error("Supabase skills insert exact error object:", skillsError);
+      return { 
+        success: false, 
+        error: skillsError.message || "Profile was created, but failed to link skills. Please verify permissions on the 'skills' table.",
+        errorDetails: skillsError 
+      };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.error("Failed to insert profile and skills:", err);
-    return { success: false, error: err?.message || "Failed to create profile" };
+    console.error("Failed to insert profile and skills exception:", err);
+    return { 
+      success: false, 
+      error: err?.message || "An unexpected error occurred while saving profile.",
+      errorDetails: err
+    };
   }
 }
 
