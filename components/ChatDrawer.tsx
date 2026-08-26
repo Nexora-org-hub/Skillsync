@@ -184,18 +184,18 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       {/* Backdrop Overlay */}
       <div 
         onClick={onClose}
-        className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/75 backdrop-blur-xl transition-opacity animate-in fade-in duration-200"
         aria-hidden="true"
       />
 
       {/* Slide-out Drawer Panel */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
         <aside 
-          className="w-screen max-w-md sm:max-w-lg bg-white dark:bg-[#0c121e] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300"
+          className="w-screen max-w-md sm:max-w-lg bg-[#0d1322]/95 backdrop-blur-xl border-l border-slate-800/80 shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300"
           aria-label="Direct Chat Drawer"
         >
           {/* Header */}
-          <header className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-slate-800 flex items-center justify-between shrink-0 shadow-md">
+          <header className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white border-b border-slate-800/80 flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
                 {profile.avatar_url ? (

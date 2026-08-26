@@ -204,18 +204,18 @@ export const InboxDrawer: React.FC<InboxDrawerProps> = ({
       {/* Backdrop Overlay */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/75 backdrop-blur-xl transition-opacity animate-in fade-in duration-200"
         aria-hidden="true"
       />
 
       {/* Slide-out Drawer Panel */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10">
         <aside
-          className="w-screen max-w-md sm:max-w-lg bg-white dark:bg-[#0c121e] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300 text-slate-900 dark:text-white"
+          className="w-screen max-w-md sm:max-w-lg bg-[#0d1322]/95 backdrop-blur-xl border-l border-slate-800/80 shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300 text-slate-100"
           aria-label="Swap Requests Inbox"
         >
           {/* 1. Header Banner */}
-          <header className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-slate-800 flex items-center justify-between shrink-0 shadow-md">
+          <header className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white border-b border-slate-800/80 flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-inner">
                 <Inbox className="w-5 h-5" />

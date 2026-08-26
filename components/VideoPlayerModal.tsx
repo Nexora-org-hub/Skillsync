@@ -44,7 +44,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-8 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-8 bg-black/75 backdrop-blur-xl animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="video-player-title"
@@ -53,9 +53,9 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
       {/* Modal Container */}
-      <div className="relative z-10 w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 w-full max-w-4xl bg-[#0d1322]/95 border border-slate-800/80 rounded-3xl shadow-2xl shadow-indigo-950/60 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
         {/* 1. Header Bar */}
-        <header className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+        <header className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white border-b border-slate-800/80 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {profile?.avatar_url ? (
               /* eslint-disable-next-line @next/next/no-img-element */

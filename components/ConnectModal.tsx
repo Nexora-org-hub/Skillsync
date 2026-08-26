@@ -147,13 +147,13 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xl animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-2xl rounded-3xl bg-slate-900/95 border border-white/10 shadow-2xl shadow-indigo-950/50 overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl rounded-3xl bg-[#0d1322]/95 border border-slate-800/80 shadow-2xl shadow-indigo-950/60 overflow-hidden flex flex-col max-h-[90vh]"
         role="dialog"
       >
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-white/10 shrink-0">
+        <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white relative border-b border-slate-800/80 shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"

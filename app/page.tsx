@@ -236,7 +236,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col bg-[#0a0f1d] text-slate-100">
       {/* Toast Notification */}
       {toastState && (
         <div
@@ -244,7 +244,7 @@ export default function HomePage() {
           className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl text-white shadow-2xl border backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300 ${
             toastState.type === "error"
               ? "bg-rose-950/95 border-rose-500/50 text-rose-100 shadow-rose-950/50"
-              : "bg-slate-900/95 dark:bg-slate-800/95 border-emerald-500/40 text-emerald-100 shadow-emerald-950/30"
+              : "bg-slate-900/95 border-emerald-500/40 text-emerald-100 shadow-emerald-950/30"
           }`}
         >
           {toastState.type === "error" ? (
@@ -268,8 +268,13 @@ export default function HomePage() {
         totalStudents={profiles.length}
       />
 
-      {/* Hero Banner */}
-      <HeroBanner />
+      {/* Hero Section Upgrade */}
+      <HeroBanner
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        totalStudents={profiles.length}
+        onOpenAddSkill={() => setIsAddSkillModalOpen(true)}
+      />
 
       {/* Discovery Feed Real-time Search & Filter Bar */}
       <FilterBar
@@ -289,14 +294,16 @@ export default function HomePage() {
       {/* Main Grid Feed */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm text-slate-400 mt-4 font-medium">Fetching verified peer profiles from Supabase...</p>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-4 font-medium tracking-wide">
+              Fetching verified peer profiles from Supabase...
+            </p>
           </div>
         ) : profiles.length === 0 ? (
           /* Empty Database State */
-          <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 my-4 shadow-xl">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30">
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 my-4 shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30">
               <GraduationCap className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-black text-white mb-2">
@@ -307,7 +314,7 @@ export default function HomePage() {
             </p>
             <button
               onClick={() => setIsAddSkillModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Share My Skill</span>
@@ -329,8 +336,8 @@ export default function HomePage() {
           </div>
         ) : (
           /* Search / Filter Empty State */
-          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 my-4 shadow-xl">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500/20 via-cyan-500/15 to-emerald-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30 shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 my-4 shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 via-cyan-500/15 to-emerald-500/20 text-cyan-400 flex items-center justify-center mb-4 border border-cyan-500/30 shadow-sm">
               <Sparkles className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-black text-white mb-2">
@@ -346,7 +353,7 @@ export default function HomePage() {
             <button
               id="clear-filters-empty-btn"
               onClick={handleResetFilters}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-600/30 active:scale-95 transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Clear Filters</span>
@@ -356,9 +363,9 @@ export default function HomePage() {
       </main>
 
       {/* Campus Trust / How it works Footer Section */}
-      <section className="border-t border-white/10 bg-[#090d16]/80 backdrop-blur-xl py-10 px-4 sm:px-6 lg:px-8 mt-12">
+      <section className="border-t border-slate-800/80 bg-[#0a0f1d]/80 backdrop-blur-xl py-10 px-4 sm:px-6 lg:px-8 mt-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-slate-800/80">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
               <HeartHandshake className="w-5 h-5" />
             </div>
@@ -372,7 +379,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-slate-800/80">
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 text-cyan-300 flex items-center justify-center shrink-0 border border-cyan-500/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -386,7 +393,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-white/5">
+          <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/50 border border-slate-800/80">
             <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/20">
               <Zap className="w-5 h-5" />
             </div>
@@ -401,7 +408,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <p>© 2026 SkillSync • Campus Peer-to-Peer Learning Platform</p>
           <div className="flex items-center gap-4">
             <span className="hover:text-white cursor-pointer">Community Guidelines</span>

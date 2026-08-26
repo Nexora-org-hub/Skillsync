@@ -76,7 +76,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/75 backdrop-blur-xl animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="video-call-title"
@@ -89,14 +89,14 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       />
 
       <div
-        className={`relative w-full flex flex-col bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 ${
+        className={`relative w-full flex flex-col bg-[#0d1322]/95 border border-slate-800/80 shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 ${
           isFullscreen
             ? "fixed inset-0 rounded-none h-full max-w-none border-none z-50"
             : "max-w-5xl h-[88vh] max-h-[900px]"
         }`}
       >
         {/* 1. Header Bar with Controls */}
-        <header className="px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-slate-800 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-md">
+        <header className="px-4 py-3 sm:px-5 sm:py-3.5 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white border-b border-slate-800/80 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-md">
           {/* Left: Call Info & Peer Badge */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="relative shrink-0">
