@@ -52,7 +52,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
   const [name, setName] = useState("");
   const [college, setCollege] = useState("");
   const [department, setDepartment] = useState("");
-  const [yearOfStudy, setYearOfStudy] = useState("Sophomore (2nd Year)");
+  const [yearOfStudy, setYearOfStudy] = useState("Freshman (1st Year)");
   const [selectedAvatar, setSelectedAvatar] = useState(PRESET_AVATARS[0].url);
   const [isCustomAvatar, setIsCustomAvatar] = useState(false);
   const [customAvatarUrl, setCustomAvatarUrl] = useState("");
@@ -92,7 +92,7 @@ export const AddSkillModal: React.FC<AddSkillModalProps> = ({
     setName("");
     setCollege("");
     setDepartment("");
-    setYearOfStudy("Sophomore (2nd Year)");
+    setYearOfStudy("Freshman (1st Year)");
     setSelectedAvatar(PRESET_AVATARS[0].url);
     setIsCustomAvatar(false);
     setCustomAvatarUrl("");

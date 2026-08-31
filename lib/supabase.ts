@@ -187,20 +187,50 @@ export async function createProfileAndSkills(params: {
     )}&backgroundColor=6366f1`;
     const avatarUrl = sanitizeOptional(params.avatarUrl) || fallbackAvatar;
 
-    // 1. Insert into `profiles` (sanitized payload with explicit null for optional fields)
+    // Helper: derive contact_type and contact_handle from a free-text contact string
+    const parseContact = (raw?: string | null): { contact_type: string | null; contact_handle: string | null } => {
+      const v = raw?.trim() || "";
+      if (!v) return { contact_type: null, contact_handle: null };
+      if (v.includes("@") && !v.startsWith("+")) return { contact_type: "email", contact_handle: v };
+      if (v.startsWith("+") || /^\d/.test(v)) return { contact_type: "whatsapp", contact_handle: v };
+      if (/discord/i.test(v)) return { contact_type: "discord", contact_handle: v };
+      return { contact_type: "other", contact_handle: v };
+    };
+
+    const { contact_type, contact_handle } = parseContact(params.contact);
+    const displayName = params.name?.trim() || "Anonymous Student";
+
+    // 1. Insert into `profiles` — full canonical payload with every required column
+    //    Optional fields are sanitized to null (not empty string) so Postgres accepts them.
     const profilePayload: Record<string, any> = {
-      full_name: params.name?.trim() || "Anonymous Student",
-      avatar_url: avatarUrl,
-      college: params.college?.trim() || "",
-      department: sanitizeOptional(params.department),
-      year_of_study: sanitizeOptional(params.yearOfStudy),
-      bio: sanitizeOptional(params.bio) || `Student at ${params.college?.trim() || "Campus"} eager to trade skills 1-on-1.`,
-      contact: sanitizeOptional(params.contact),
-      linkedin_url: sanitizeOptional(params.linkedinUrl),
-      github_url: sanitizeOptional(params.githubUrl),
-      achievements: sanitizeOptional(params.achievements),
+      // Identity — send both `name` and `full_name` so either schema column is satisfied
+      name:           displayName,
+      full_name:      displayName,
+      // Academic info
+      university:     params.college?.trim() || "",
+      college:        params.college?.trim() || "",
+      department:     sanitizeOptional(params.department),
+      year_of_study:  params.yearOfStudy?.trim() || "1st Year",
+      // Avatar / media
+      avatar_url:     avatarUrl,
+      video_url:      sanitizeOptional(params.videoUrl),
+      // Skills (denormalised on the profile row for fast querying)
+      teach_skill:    params.teachSkill.name?.trim() || null,
+      teach_category: params.teachSkill.category || "Tech",
+      learn_skill:    params.learnSkill.name?.trim() || null,
+      learn_category: params.learnSkill.category || "Creative",
+      // Contact
+      contact:        sanitizeOptional(params.contact),
+      contact_type,
+      contact_handle,
+      // Professional links (null when blank — never empty string)
+      linkedin_url:   sanitizeOptional(params.linkedinUrl),
+      github_url:     sanitizeOptional(params.githubUrl),
+      // Proof of work
+      achievements:   sanitizeOptional(params.achievements),
       certificate_url: sanitizeOptional(params.certificateUrl),
-      video_url: sanitizeOptional(params.videoUrl)
+      // Bio
+      bio: sanitizeOptional(params.bio) || `Student at ${params.college?.trim() || "Campus"} eager to trade skills 1-on-1.`,
     };
 
     let insertedProfile: any = null;
@@ -214,8 +244,13 @@ export async function createProfileAndSkills(params: {
       console.error("Supabase profile insert exact error object:", profileError);
       console.warn("Supabase profile insert attempt failed with payload:", profilePayload);
       
-      // Intelligent fallback removing non-existent columns one by one if custom columns aren't in Postgres yet
-      const optionalFields = ["linkedin_url", "github_url", "achievements", "certificate_url", "video_url", "department", "year_of_study", "contact"];
+      // Intelligent fallback: strip columns the schema doesn't have yet, one at a time
+      const optionalFields = [
+        "linkedin_url", "github_url", "achievements", "certificate_url",
+        "video_url", "department", "year_of_study", "contact",
+        "contact_type", "contact_handle", "university",
+        "teach_skill", "teach_category", "learn_skill", "learn_category"
+      ];
       let retryPayload = { ...profilePayload };
       let hadRetry = false;
 
@@ -226,9 +261,8 @@ export async function createProfileAndSkills(params: {
         }
       }
 
-      // Check if schema uses `name` instead of `full_name`
+      // If `full_name` is not a valid column, drop it (we already have `name`)
       if (profileError?.message?.includes("full_name") || profileError?.message?.includes(`"full_name"`)) {
-        retryPayload.name = retryPayload.full_name;
         delete retryPayload.full_name;
         hadRetry = true;
       }
